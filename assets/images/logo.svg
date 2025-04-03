@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- Círculo externo (globo) -->
+  <circle cx="100" cy="100" r="80" fill="none" stroke="#333" stroke-width="4"/>
+  
+  <!-- Linhas horizontais do globo -->
+  <path d="M20,100 h160" stroke="#333" stroke-width="2" fill="none"/>
+  <path d="M30,60 h140" stroke="#333" stroke-width="2" fill="none"/>
+  <path d="M30,140 h140" stroke="#333" stroke-width="2" fill="none"/>
+  
+  <!-- Linhas verticais do globo -->
+  <path d="M100,20 v160" stroke="#333" stroke-width="2" fill="none"/>
+  <path d="M60,30 v140" stroke="#333" stroke-width="2" fill="none"/>
+  <path d="M140,30 v140" stroke="#333" stroke-width="2" fill="none"/>
+  
+  <!-- Trevo verde (símbolo central) -->
+  <path d="M100,70 C115,70 115,85 100,85 C85,85 85,70 100,70 Z" fill="#00A651"/>
+  <path d="M115,100 C115,115 100,115 100,100 C100,85 115,85 115,100 Z" fill="#00A651"/>
+  <path d="M100,115 C85,115 85,100 100,100 C115,100 115,115 100,115 Z" fill="#00A651"/>
+  <path d="M85,100 C85,85 100,85 100,100 C100,115 85,115 85,100 Z" fill="#00A651"/>
+</svg>
