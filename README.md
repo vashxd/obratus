@@ -1,16 +1,37 @@
-# obratus
+# 📋 OBRATUS
 
-A new Flutter project.
+![Project Logo](https://via.placeholder.com/200x50.png?text=GerObras+Logo) <!-- Adicione seu logo depois -->
 
-## Getting Started
+> Sistema de gerenciamento de materiais e orçamentos para construção civil
 
-This project is a starting point for a Flutter application.
+[![Build Status](https://img.shields.io/github/actions/workflow/status/seu-usuario/gerobras/build.yml?style=flat-square)](https://github.com/seu-usuario/gerobras/actions) <!-- Atualize o link -->
 
-A few resources to get you started if this is your first Flutter project:
+## ✨ Funcionalidades
+- 📦 Gestão de materiais de construção
+- 💰 Criação e acompanhamento de orçamentos
+- 👷 Integração com profissionais da construção civil
+- 📊 Dashboard analítico de projetos
+- 🔄 Sincronização em tempo real com banco de dados local
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## 📦 Pré-requisitos
+- Flutter 3.0+
+- Dart 2.17+
+- Android Studio/VSCode
+- Dispositivo Android/iOS ou emulador
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 🚀 Começando
+
+### Instalação
+```bash
+# Clone o repositório
+git clone https://github.com/vashxd/obratus.git
+
+# Entre no diretório do projeto
+cd gerobras
+
+# Instale as dependências
+flutter pub get
+
+# Execute o app
+flutter run
+```
