@@ -7,10 +7,12 @@ import 'professional_detail_screen.dart';
 
 class ProfessionalsListScreen extends StatefulWidget {
   final String specialty;
+  final String? projectId; // ID do projeto opcional
 
   const ProfessionalsListScreen({
     Key? key,
     required this.specialty,
+    this.projectId,
   }) : super(key: key);
 
   @override
@@ -133,6 +135,7 @@ class _ProfessionalsListScreenState extends State<ProfessionalsListScreen> {
                                   builder: (context) => ProfessionalDetailScreen(
                                     professional: professional,
                                     user: user,
+                                    projectId: widget.projectId,
                                   ),
                                 ),
                               );

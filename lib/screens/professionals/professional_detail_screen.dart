@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../models/professional_model.dart';
 import '../../models/user_model.dart';
+import '../../models/project_model.dart';
+import '../../services/local_project_service.dart';
 
 class ProfessionalDetailScreen extends StatefulWidget {
   final ProfessionalModel professional;
   final UserModel user;
+  final String? projectId; // ID do projeto opcional
 
   const ProfessionalDetailScreen({
     Key? key,
     required this.professional,
     required this.user,
+    this.projectId,
   }) : super(key: key);
 
   @override
@@ -18,6 +22,49 @@ class ProfessionalDetailScreen extends StatefulWidget {
 }
 
 class _ProfessionalDetailScreenState extends State<ProfessionalDetailScreen> {
+  final LocalProjectService _projectService = LocalProjectService();
+  bool _isLoading = false;
+  
+  // Método para vincular o profissional ao projeto
+  Future<void> _assignProfessionalToProject() async {
+    if (widget.projectId == null) return;
+    
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Carregar o projeto atual
+      final project = _projectService.getProjectById(widget.projectId!);
+      if (project == null) {
+        throw Exception('Projeto não encontrado');
+      }
+
+      // Atualizar o projeto com o ID do profissional
+      final updatedProject = project.copyWith(professionalId: widget.professional.id);
+      await _projectService.updateProject(updatedProject);
+
+      // Mostrar mensagem de sucesso
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profissional vinculado com sucesso!'))
+        );
+        
+        // Retornar para a tela anterior com resultado positivo
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao vincular profissional: ${e.toString()}'))
+        );
+      }
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -342,40 +389,99 @@ class _ProfessionalDetailScreenState extends State<ProfessionalDetailScreen> {
   }
 
   Widget _buildContactButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Funcionalidade de chat em desenvolvimento')),
-              );
-            },
-            icon: Icon(Icons.chat),
-            label: Text('Chat'),
+    // Se temos um ID de projeto, mostramos o botão de adicionar à obra
+    if (widget.projectId != null) {
+      return Column(
+        children: [
+          // Botão de adicionar à obra
+          ElevatedButton.icon(
+            onPressed: _isLoading ? null : _assignProfessionalToProject,
+            icon: _isLoading 
+                ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : Icon(Icons.add_business),
+            label: Text('Adicionar à Obra'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: Colors.orange,
               padding: EdgeInsets.symmetric(vertical: 12),
+              minimumSize: Size(double.infinity, 48),
             ),
           ),
-        ),
-        SizedBox(width: 16),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Funcionalidade de orçamento em desenvolvimento')),
-              );
-            },
-            icon: Icon(Icons.request_quote),
-            label: Text('Orçamento'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              padding: EdgeInsets.symmetric(vertical: 12),
+          SizedBox(height: 16),
+          // Botões de contato
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Funcionalidade de chat em desenvolvimento')),
+                    );
+                  },
+                  icon: Icon(Icons.chat),
+                  label: Text('Chat'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+              SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Funcionalidade de orçamento em desenvolvimento')),
+                    );
+                  },
+                  icon: Icon(Icons.request_quote),
+                  label: Text('Orçamento'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    } else {
+      // Versão original sem o botão de adicionar à obra
+      return Row(
+        children: [
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Funcionalidade de chat em desenvolvimento')),
+                );
+              },
+              icon: Icon(Icons.chat),
+              label: Text('Chat'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding: EdgeInsets.symmetric(vertical: 12),
+              ),
             ),
           ),
-        ),
-      ],
-    );  // Remove this semicolon if it's causing issues
+          SizedBox(width: 16),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Funcionalidade de orçamento em desenvolvimento')),
+                );
+              },
+              icon: Icon(Icons.request_quote),
+              label: Text('Orçamento'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                padding: EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
   }
 }

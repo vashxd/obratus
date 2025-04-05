@@ -10,6 +10,7 @@ import '../../services/professional_service.dart';
 import '../materials/material_list_screen.dart';
 import '../professionals/professional_detail_screen.dart';
 import '../professionals/select_professional_screen.dart';
+import '../professionals/professional_specialties_screen.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   final String projectId;
@@ -352,11 +353,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         ),
                         onPressed: () {
-                          // Navegar para busca de profissionais
+                          // Navegar para tela de especialidades de profissionais
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => SelectProfessionalScreen(
+                              builder: (context) => ProfessionalSpecialtiesScreen(
                                 projectId: widget.projectId,
                               ),
                             ),

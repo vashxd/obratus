@@ -236,8 +236,9 @@ class _SelectProfessionalScreenState extends State<SelectProfessionalScreen> {
       itemCount: _professionals.length,
       itemBuilder: (context, index) {
         final professional = _professionals[index];
-        final user = professional['user'] as UserModel;
-        final professionalData = professional['professional'] as ProfessionalModel;
+        final userMap = professional['user'] as Map<String, dynamic>;
+        final user = UserModel.fromJson(userMap);
+        final professionalData = ProfessionalModel.fromJson(professional['professional'] as Map<String, dynamic>);
 
         return Card(
           margin: EdgeInsets.only(bottom: 16),
