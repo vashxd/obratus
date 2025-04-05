@@ -2,23 +2,25 @@ class UserModel {
   final String id;
   final String name;
   final String email;
-  final String phone;
-  final String birthDate;
-  final String gender;
+  final String? phone;
+  final String? birthDate;
+  final String? gender;
   final String? photoUrl;
   final DateTime createdAt;
-  final bool isClient; // true para cliente, false para profissional
+  final bool isClient;
+  final String? type; // Tipo de usuário (client, professional, etc)
 
   UserModel({
     required this.id,
     required this.name,
     required this.email,
-    required this.phone,
-    required this.birthDate,
-    required this.gender,
+    this.phone,
+    this.birthDate,
+    this.gender,
     this.photoUrl,
     required this.createdAt,
-    required this.isClient,
+    this.isClient = true,
+    this.type,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -26,12 +28,13 @@ class UserModel {
       id: json['id'] as String,
       name: json['name'] as String,
       email: json['email'] as String,
-      phone: json['phone'] as String,
-      birthDate: json['birthDate'] as String,
-      gender: json['gender'] as String,
+      phone: json['phone'] as String?,
+      birthDate: json['birthDate'] as String?,
+      gender: json['gender'] as String?,
       photoUrl: json['photoUrl'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      isClient: json['isClient'] as bool,
+      isClient: json['isClient'] as bool? ?? true,
+      type: json['type'] as String?,
     );
   }
 
@@ -46,6 +49,7 @@ class UserModel {
       'photoUrl': photoUrl,
       'createdAt': createdAt.toIso8601String(),
       'isClient': isClient,
+      'type': type,
     };
   }
 
@@ -59,6 +63,7 @@ class UserModel {
     String? photoUrl,
     DateTime? createdAt,
     bool? isClient,
+    String? type,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -70,6 +75,7 @@ class UserModel {
       photoUrl: photoUrl ?? this.photoUrl,
       createdAt: createdAt ?? this.createdAt,
       isClient: isClient ?? this.isClient,
-    );
+      type: type ?? this.type,
+    );}
   }
 }

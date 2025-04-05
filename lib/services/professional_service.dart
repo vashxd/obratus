@@ -30,6 +30,40 @@ class ProfessionalService {
     }
   }
 
+  // Obter usuário associado ao profissional
+  Future<UserModel?> getUserByProfessionalId(String professionalId) async {
+    try {
+      // Primeiro, obter o profissional para conseguir o userId
+      final professionalData = await _localService.getProfessionalById(professionalId);
+      
+      if (professionalData == null) {
+        return null;
+      }
+      
+      final userId = professionalData['userId'] as String;
+      
+      // Buscar o usuário pelo ID
+      final userData = await _localService.getUserById(userId);
+      
+      if (userData != null) {
+        return UserModel.fromJson(userData);
+      }
+      
+      return null;
+    } catch (e) {
+      // Se não encontrar, retornar um usuário simulado para fins de demonstração
+      return UserModel(
+        id: 'mock_user_id',
+        name: 'Profissional',
+        email: 'profissional@exemplo.com',
+        phone: '(11) 99999-9999',
+        photoUrl: null,
+        createdAt: DateTime.now(),
+        isClient: false,
+      );
+    }
+  }
+
   // Obter perfil de profissional por ID de usuário
   Future<ProfessionalModel?> getProfessionalByUserId(String userId) async {
     try {
@@ -51,6 +85,18 @@ class ProfessionalService {
       await _localService.updateProfessionalProfile(professional.toJson());
     } catch (e) {
       rethrow;
+    }
+  }
+
+  // Obter todos os profissionais
+  Future<List<Map<String, dynamic>>> getAllProfessionals() async {
+    try {
+      // Por enquanto, vamos usar os dados simulados para demonstração
+      // Em uma implementação real, buscaríamos do banco de dados
+      return await _localService.getMockProfessionals();
+    } catch (e) {
+      // Em caso de erro, retornar uma lista vazia
+      return [];
     }
   }
 

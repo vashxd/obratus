@@ -60,6 +60,23 @@ class LocalProfessionalService {
     }
   }
 
+  // Obter usuário por ID
+  Future<Map<String, dynamic>?> getUserById(String userId) async {
+    try {
+      final box = _storageService.getBox(LocalStorageService.usersBoxName);
+      final data = box.get(userId);
+      
+      if (data != null) {
+        return Map<String, dynamic>.from(data);
+      }
+      
+      return null;
+    } catch (e) {
+      // Se não encontrar, retornar null
+      return null;
+    }
+  }
+
   // Atualizar perfil de profissional
   Future<void> updateProfessionalProfile(Map<String, dynamic> professionalData) async {
     try {

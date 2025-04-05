@@ -6,7 +6,10 @@ import '../../models/project_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/local_material_service.dart';
 import '../../services/local_project_service.dart';
+import '../../services/professional_service.dart';
 import '../materials/material_list_screen.dart';
+import '../professionals/professional_detail_screen.dart';
+import '../professionals/select_professional_screen.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   final String projectId;
@@ -45,6 +48,61 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       _materialQuotes = materialQuotes;
       _isLoading = false;
     });
+  }
+
+  // Método para visualizar o perfil do profissional
+  Future<void> _viewProfessionalProfile(String professionalId) async {
+    try {
+      // Mostrar indicador de carregamento
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+
+      // Buscar informações do profissional
+      final professionalService = ProfessionalService();
+      final professional = await professionalService.getProfessionalById(professionalId);
+
+      // Fechar o diálogo de carregamento
+      Navigator.pop(context);
+
+      if (professional == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profissional não encontrado')),
+        );
+        return;
+      }
+
+      // Navegar para a tela de detalhes do profissional
+      final user = await professionalService.getUserByProfessionalId(professionalId);
+      if (user != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProfessionalDetailScreen(
+              professional: professional,
+              user: user,
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Informações do usuário não encontradas')),
+        );
+      }
+    } catch (e) {
+      // Fechar o diálogo de carregamento se ainda estiver aberto
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar perfil do profissional: ${e.toString()}')),
+      );
+    }
   }
 
   @override
@@ -270,10 +328,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         ),
                         onPressed: () {
-                          // Navegar para o perfil do profissional
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Funcionalidade em desenvolvimento')),
-                          );
+                          // Buscar e exibir informações do profissional
+                          _viewProfessionalProfile(project.professionalId!);
                         },
                         child: Text('Ver perfil'),
                       ),
@@ -297,9 +353,19 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         ),
                         onPressed: () {
                           // Navegar para busca de profissionais
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Funcionalidade em desenvolvimento')),
-                          );
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SelectProfessionalScreen(
+                                projectId: widget.projectId,
+                              ),
+                            ),
+                          ).then((result) {
+                            // Recarregar o projeto se um profissional foi atribuído
+                            if (result == true) {
+                              _loadProject();
+                            }
+                          });
                         },
                         child: Text('Buscar profissional'),
                       ),
