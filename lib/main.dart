@@ -9,6 +9,7 @@ import 'screens/home/professional_home_screen.dart';
 import 'screens/materials/material_list_screen.dart';
 import 'screens/materials/client_quotes_screen.dart';
 import 'screens/materials/professional_quotes_screen.dart';
+import 'screens/professionals/professional_specialties_screen.dart';
 import 'constants/app_theme.dart';
 import 'services/local_storage_service.dart';
 import 'services/local_auth_service.dart';
@@ -50,6 +51,7 @@ class MyApp extends StatelessWidget {
           '/material_list': (context) => const MaterialListScreen(),
           '/client_quotes': (context) => const ClientQuotesScreen(),
           '/professional_quotes': (context) => const ProfessionalQuotesScreen(),
+          '/professionals': (context) => const ProfessionalSpecialtiesScreen(),
         },
       ),
     );

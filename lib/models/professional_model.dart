@@ -1,4 +1,27 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+// Importação condicional para suportar tanto Firebase quanto modo local
+import 'dart:convert';
+
+// Classe para representar um ponto geográfico sem depender do Firebase
+class GeoPoint {
+  final double latitude;
+  final double longitude;
+  
+  GeoPoint({required this.latitude, required this.longitude});
+  
+  factory GeoPoint.fromJson(Map<String, dynamic> json) {
+    return GeoPoint(
+      latitude: json['latitude'] as double,
+      longitude: json['longitude'] as double,
+    );
+  }
+  
+  Map<String, dynamic> toJson() {
+    return {
+      'latitude': latitude,
+      'longitude': longitude,
+    };
+  }
+}
 
 class ProfessionalModel {
   final String id;
@@ -10,6 +33,7 @@ class ProfessionalModel {
   final int ratingCount; // Quantidade de avaliações
   final GeoPoint? location; // Localização para busca por proximidade
   final bool available; // Disponibilidade para novos trabalhos
+  final String? professionalId; // Número de identificação profissional (CREA, CAU, CPF, etc)
 
   ProfessionalModel({
     required this.id,
@@ -21,6 +45,7 @@ class ProfessionalModel {
     required this.ratingCount,
     this.location,
     required this.available,
+    this.professionalId,
   });
 
   factory ProfessionalModel.fromJson(Map<String, dynamic> json) {
@@ -34,8 +59,13 @@ class ProfessionalModel {
           : null,
       rating: (json['rating'] as num).toDouble(),
       ratingCount: json['ratingCount'] as int,
-      location: json['location'] as GeoPoint?,
+      location: json['location'] != null
+          ? (json['location'] is GeoPoint
+              ? json['location'] as GeoPoint
+              : GeoPoint.fromJson(json['location'] as Map<String, dynamic>))
+          : null,
       available: json['available'] as bool,
+      professionalId: json['professionalId'] as String?,
     );
   }
 
@@ -48,8 +78,9 @@ class ProfessionalModel {
       'portfolioUrls': portfolioUrls,
       'rating': rating,
       'ratingCount': ratingCount,
-      'location': location,
+      'location': location?.toJson(),
       'available': available,
+      'professionalId': professionalId,
     };
   }
 
@@ -63,6 +94,7 @@ class ProfessionalModel {
     int? ratingCount,
     GeoPoint? location,
     bool? available,
+    String? professionalId,
   }) {
     return ProfessionalModel(
       id: id ?? this.id,
@@ -74,6 +106,7 @@ class ProfessionalModel {
       ratingCount: ratingCount ?? this.ratingCount,
       location: location ?? this.location,
       available: available ?? this.available,
+      professionalId: professionalId ?? this.professionalId,
     );
   }
 }

@@ -136,9 +136,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                 subtitle: 'Escolha o profissional ideal',
                 onTap: () {
                   // Navegar para tela de profissionais
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Funcionalidade em desenvolvimento')),
-                  );
+                  Navigator.pushNamed(context, '/professionals');
                 },
               ),
               SizedBox(height: 32),

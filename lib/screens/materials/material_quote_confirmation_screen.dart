@@ -93,12 +93,8 @@ class MaterialQuoteConfirmationScreen extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  // Navegar para a tela de profissionais
-                  Navigator.pushNamedAndRemoveUntil(
-                    context, 
-                    '/client_home', 
-                    (route) => false,
-                  );
+                  // Navegar para a tela de seleção de especialidades profissionais
+                  Navigator.pushNamed(context, '/professionals');
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green.shade800,

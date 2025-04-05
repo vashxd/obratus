@@ -417,8 +417,8 @@ class _MaterialListScreenState extends State<MaterialListScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  // Navegar para a tela de profissionais
-                  Navigator.pop(context);
+                  // Navegar para a tela de seleção de especialidades profissionais
+                  Navigator.pushNamed(context, '/professionals');
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green.shade800,
