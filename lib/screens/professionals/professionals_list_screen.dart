@@ -237,7 +237,7 @@ class _ProfessionalsListScreenState extends State<ProfessionalsListScreen> {
                       Icon(Icons.phone, color: AppColors.primary, size: 16),
                       SizedBox(width: 4),
                       Text(
-                        user.phone,
+                        user.phone ?? 'Não informado',
                         style: TextStyle(
                           color: Colors.grey,
                           fontSize: 14,

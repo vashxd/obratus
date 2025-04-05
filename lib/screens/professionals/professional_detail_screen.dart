@@ -137,7 +137,7 @@ class _ProfessionalDetailScreenState extends State<ProfessionalDetailScreen> {
                   Icon(Icons.phone, color: Colors.grey, size: 16),
                   SizedBox(width: 4),
                   Text(
-                    widget.user.phone,
+                    widget.user.phone ?? 'Não informado',
                     style: TextStyle(
                       color: Colors.grey,
                       fontSize: 14,
@@ -347,7 +347,6 @@ class _ProfessionalDetailScreenState extends State<ProfessionalDetailScreen> {
         Expanded(
           child: ElevatedButton.icon(
             onPressed: () {
-              // Implementar funcionalidade de chat
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Funcionalidade de chat em desenvolvimento')),
               );
@@ -364,7 +363,6 @@ class _ProfessionalDetailScreenState extends State<ProfessionalDetailScreen> {
         Expanded(
           child: ElevatedButton.icon(
             onPressed: () {
-              // Implementar funcionalidade de orçamento
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Funcionalidade de orçamento em desenvolvimento')),
               );
@@ -378,6 +376,6 @@ class _ProfessionalDetailScreenState extends State<ProfessionalDetailScreen> {
           ),
         ),
       ],
-    );
+    );  // Remove this semicolon if it's causing issues
   }
 }

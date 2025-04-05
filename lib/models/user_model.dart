@@ -76,6 +76,6 @@ class UserModel {
       createdAt: createdAt ?? this.createdAt,
       isClient: isClient ?? this.isClient,
       type: type ?? this.type,
-    );}
+    );
   }
 }
