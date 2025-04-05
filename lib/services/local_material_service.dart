@@ -17,13 +17,14 @@ class LocalMaterialService {
   }
   
   // Criar um novo orçamento de materiais
-  Future<MaterialQuote> createMaterialQuote(String clientId, List<MaterialItem> items) async {
+  Future<MaterialQuote> createMaterialQuote(String clientId, List<MaterialItem> items, {String? projectId}) async {
     final materialsBox = _getMaterialsBox();
     
     // Criar um novo orçamento
     final MaterialQuote quote = MaterialQuote(
       id: _uuid.v4(),
       clientId: clientId,
+      projectId: projectId, // Associar ao projeto, se fornecido
       items: items,
       createdAt: DateTime.now(),
       status: 'pending', // status inicial: pendente
@@ -77,6 +78,29 @@ class LocalMaterialService {
     
     // Ordenar por data de criação (mais antigo primeiro)
     quotes.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    
+    return quotes;
+  }
+  
+  // Obter todos os orçamentos de um projeto específico
+  Future<List<MaterialQuote>> getProjectQuotes(String projectId) async {
+    final materialsBox = _getMaterialsBox();
+    
+    // Filtrar orçamentos pelo ID do projeto
+    final List<MaterialQuote> quotes = [];
+    
+    for (var key in materialsBox.keys) {
+      final data = materialsBox.get(key);
+      if (data != null) {
+        final quote = MaterialQuote.fromJson(Map<String, dynamic>.from(data));
+        if (quote.projectId == projectId) {
+          quotes.add(quote);
+        }
+      }
+    }
+    
+    // Ordenar por data de criação (mais recente primeiro)
+    quotes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     
     return quotes;
   }

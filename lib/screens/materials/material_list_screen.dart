@@ -8,7 +8,9 @@ import '../../services/local_material_service.dart';
 import 'material_quote_confirmation_screen.dart';
 
 class MaterialListScreen extends StatefulWidget {
-  const MaterialListScreen({Key? key}) : super(key: key);
+  final String? projectId; // ID do projeto ao qual os materiais serão associados
+  
+  const MaterialListScreen({Key? key, this.projectId}) : super(key: key);
 
   @override
   State<MaterialListScreen> createState() => _MaterialListScreenState();
@@ -95,9 +97,11 @@ class _MaterialListScreenState extends State<MaterialListScreen> {
     }
 
     try {
+      // Criar o orçamento, associando ao projeto se o projectId estiver disponível
       final quote = await _materialService.createMaterialQuote(
         userId,
         List.from(_materialItems), // Criar uma cópia da lista
+        projectId: widget.projectId, // Associar ao projeto, se fornecido
       );
 
       if (!mounted) return;

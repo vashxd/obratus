@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
+import '../../models/material_model.dart' hide MaterialItem;
 import '../../models/project_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/local_material_service.dart';
 import '../../services/local_project_service.dart';
+import '../materials/material_list_screen.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   final String projectId;
@@ -16,7 +19,9 @@ class ProjectDetailScreen extends StatefulWidget {
 
 class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   final LocalProjectService _projectService = LocalProjectService();
+  final LocalMaterialService _materialService = LocalMaterialService();
   ProjectModel? _project;
+  List<MaterialQuote> _materialQuotes = [];
   bool _isLoading = true;
 
   @override
@@ -31,8 +36,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     });
 
     final project = _projectService.getProjectById(widget.projectId);
+    
+    // Carregar orçamentos de materiais associados ao projeto
+    final materialQuotes = await _materialService.getProjectQuotes(widget.projectId);
+    
     setState(() {
       _project = project;
+      _materialQuotes = materialQuotes;
       _isLoading = false;
     });
   }
@@ -310,16 +320,36 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              TextButton.icon(
-                icon: Icon(Icons.add, color: AppColors.primary),
-                label: Text(
-                  'Adicionar',
-                  style: TextStyle(color: AppColors.primary),
-                ),
-                onPressed: () {
-                  // Adicionar material
-                  _showAddMaterialDialog();
-                },
+              Row(
+                children: [
+                  TextButton.icon(
+                    icon: Icon(Icons.add, color: AppColors.primary),
+                    label: Text(
+                      'Adicionar',
+                      style: TextStyle(color: AppColors.primary),
+                    ),
+                    onPressed: () {
+                      // Adicionar material
+                      _showAddMaterialDialog();
+                    },
+                  ),
+                  TextButton.icon(
+                    icon: Icon(Icons.shopping_cart, color: AppColors.primary),
+                    label: Text(
+                      'Lista de Materiais',
+                      style: TextStyle(color: AppColors.primary),
+                    ),
+                    onPressed: () {
+                      // Navegar para a tela de lista de materiais
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MaterialListScreen(projectId: widget.projectId),
+                        ),
+                      ).then((_) => _loadProject()); // Recarregar o projeto ao voltar
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -449,6 +479,109 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               ],
             ),
           ),
+          // Orçamentos de Materiais
+          Text(
+            'Orçamentos de Materiais',
+            style: TextStyle(
+              color: AppColors.primary,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 8),
+          _materialQuotes.isEmpty
+              ? Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBackground,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Nenhum orçamento de material solicitado',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                    ),
+                  ),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: _materialQuotes.length,
+                  itemBuilder: (context, index) {
+                    final quote = _materialQuotes[index];
+                    return Card(
+                      margin: EdgeInsets.only(bottom: 8),
+                      color: AppColors.cardBackground,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Orçamento #${quote.id.substring(0, 8)}',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                _buildQuoteStatusBadge(quote.status),
+                              ],
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Solicitado em: ${_formatDate(quote.createdAt)}',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Itens: ${quote.items.length}',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            if (quote.totalPrice != null) ...[  
+                              SizedBox(height: 4),
+                              Text(
+                                'Valor total: R\$ ${quote.totalPrice!.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                            SizedBox(height: 12),
+                            // Lista de itens do orçamento
+                            ExpansionTile(
+                              title: Text(
+                                'Ver itens',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              collapsedIconColor: Colors.white,
+                              iconColor: AppColors.primary,
+                              children: quote.items.map((item) {
+                                return ListTile(
+                                  dense: true,
+                                  title: Text(
+                                    item.name,
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  subtitle: Text(
+                                    'Quantidade: ${item.quantity} ${item.unit}',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
           SizedBox(height: 32),
         ],
       ),
@@ -497,6 +630,49 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       case 'cancelado':
         badgeColor = Colors.red;
         statusText = 'Cancelado';
+        break;
+      default:
+        badgeColor = Colors.grey;
+        statusText = 'Indefinido';
+    }
+    
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: badgeColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        statusText,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildQuoteStatusBadge(String status) {
+    Color badgeColor;
+    String statusText;
+
+    switch (status) {
+      case 'pending':
+        badgeColor = Colors.orange;
+        statusText = 'Pendente';
+        break;
+      case 'quoted':
+        badgeColor = Colors.blue;
+        statusText = 'Orçado';
+        break;
+      case 'accepted':
+        badgeColor = Colors.green;
+        statusText = 'Aceito';
+        break;
+      case 'rejected':
+        badgeColor = Colors.red;
+        statusText = 'Rejeitado';
         break;
       default:
         badgeColor = Colors.grey;

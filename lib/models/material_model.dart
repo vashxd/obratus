@@ -44,6 +44,7 @@ class MaterialQuote {
   final String id;
   final String clientId;
   final String? professionalId; // pode ser nulo se ainda não foi atribuído
+  final String? projectId; // ID do projeto ao qual este orçamento está associado
   final List<MaterialItem> items;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -55,6 +56,7 @@ class MaterialQuote {
     required this.id,
     required this.clientId,
     this.professionalId,
+    this.projectId,
     required this.items,
     required this.createdAt,
     this.updatedAt,
@@ -63,18 +65,32 @@ class MaterialQuote {
     this.notes,
   });
 
+
   factory MaterialQuote.fromJson(Map<String, dynamic> json) {
+    // Função auxiliar para converter diferentes tipos de data para DateTime
+    DateTime? convertToDateTime(dynamic value) {
+      if (value == null) return null;
+      if (value is DateTime) return value;
+      if (value is Timestamp) return value.toDate();
+      if (value is String) return DateTime.parse(value);
+      return null;
+    }
+    
     return MaterialQuote(
       id: json['id'] as String,
       clientId: json['clientId'] as String,
       professionalId: json['professionalId'] as String?,
+      projectId: json['projectId'] as String?,
       items: (json['items'] as List<dynamic>)
-          .map((item) => MaterialItem.fromJson(item as Map<String, dynamic>))
+          .map((item) => MaterialItem.fromJson(
+                // Converter Map<dynamic, dynamic> para Map<String, dynamic>
+                (item is Map<String, dynamic>)
+                    ? item
+                    : Map<String, dynamic>.from(item as Map)
+              ))
           .toList(),
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'] as String)
-          : null,
+      createdAt: convertToDateTime(json['createdAt'])!,
+      updatedAt: convertToDateTime(json['updatedAt']),
       status: json['status'] as String,
       totalPrice: json['totalPrice'] as double?,
       notes: json['notes'] as String?,
@@ -86,6 +102,7 @@ class MaterialQuote {
       'id': id,
       'clientId': clientId,
       'professionalId': professionalId,
+      'projectId': projectId,
       'items': items.map((item) => item.toJson()).toList(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
@@ -101,6 +118,7 @@ class MaterialQuote {
       'id': id,
       'clientId': clientId,
       'professionalId': professionalId,
+      'projectId': projectId,
       'items': items.map((e) => e.toJson()).toList(),
       'createdAt': createdAt is DateTime ? Timestamp.fromDate(createdAt) : createdAt,
       'updatedAt': updatedAt != null ? (updatedAt is DateTime ? Timestamp.fromDate(updatedAt!) : updatedAt) : null,
