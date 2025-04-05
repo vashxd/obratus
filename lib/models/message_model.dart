@@ -77,6 +77,8 @@ class ChatModel {
   final String lastMessageSenderId; // ID de quem enviou a última mensagem
   final Map<String, int> unreadCount; // Contagem de mensagens não lidas por usuário
   final String? projectId; // ID do projeto relacionado (opcional)
+  final Map<String, String> participantNames; // Nomes dos participantes
+  final Map<String, String?> participantPhotos; // URLs das fotos dos participantes
 
   ChatModel({
     required this.id,
@@ -87,7 +89,11 @@ class ChatModel {
     required this.lastMessageSenderId,
     required this.unreadCount,
     this.projectId,
-  });
+    Map<String, String>? participantNames,
+    Map<String, String?>? participantPhotos,
+  }) : 
+    this.participantNames = participantNames ?? {},
+    this.participantPhotos = participantPhotos ?? {};
 
   factory ChatModel.fromJson(Map<String, dynamic> json) {
     return ChatModel(
@@ -99,6 +105,12 @@ class ChatModel {
       lastMessageSenderId: json['lastMessageSenderId'] as String,
       unreadCount: Map<String, int>.from(json['unreadCount'] as Map),
       projectId: json['projectId'] as String?,
+      participantNames: json['participantNames'] != null 
+          ? Map<String, String>.from(json['participantNames'] as Map) 
+          : {},
+      participantPhotos: json['participantPhotos'] != null 
+          ? Map<String, String?>.from(json['participantPhotos'] as Map) 
+          : {},
     );
   }
 
@@ -112,6 +124,8 @@ class ChatModel {
       'lastMessageSenderId': lastMessageSenderId,
       'unreadCount': unreadCount,
       'projectId': projectId,
+      'participantNames': participantNames,
+      'participantPhotos': participantPhotos,
     };
   }
 
@@ -124,6 +138,8 @@ class ChatModel {
     String? lastMessageSenderId,
     Map<String, int>? unreadCount,
     String? projectId,
+    Map<String, String>? participantNames,
+    Map<String, String?>? participantPhotos,
   }) {
     return ChatModel(
       id: id ?? this.id,
@@ -134,6 +150,8 @@ class ChatModel {
       lastMessageSenderId: lastMessageSenderId ?? this.lastMessageSenderId,
       unreadCount: unreadCount ?? this.unreadCount,
       projectId: projectId ?? this.projectId,
+      participantNames: participantNames ?? this.participantNames,
+      participantPhotos: participantPhotos ?? this.participantPhotos,
     );
   }
 }

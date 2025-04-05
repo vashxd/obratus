@@ -4,6 +4,7 @@ import '../../constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/user_model.dart';
 import '../../screens/projects/client_projects_screen.dart';
+import '../../screens/chat/chat_list_screen.dart';
 
 class ClientHomeScreen extends StatefulWidget {
   const ClientHomeScreen({Key? key}) : super(key: key);
@@ -232,9 +233,22 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         unselectedItemColor: Colors.grey,
         currentIndex: _selectedIndex,
         onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
+          if (index == 1) {
+            // Navegar para a tela de chat quando o botão de chat for clicado
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ChatListScreen(),
+              ),
+            );
+          } else if (index == 2) {
+            // Navegar para a tela de notificações quando o botão de notificações for clicado
+            Navigator.pushNamed(context, '/notifications');
+          } else {
+            setState(() {
+              _selectedIndex = index;
+            });
+          }
         },
         items: [
           BottomNavigationBarItem(

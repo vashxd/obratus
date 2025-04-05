@@ -7,6 +7,7 @@ import '../../models/user_model.dart';
 import '../../models/professional_model.dart';
 import '../../services/professional_service.dart';
 import '../professionals/professional_profile_edit_screen.dart';
+import '../chat/chat_list_screen.dart';
 
 class ProfessionalHomeScreen extends StatefulWidget {
   const ProfessionalHomeScreen({Key? key}) : super(key: key);
@@ -406,14 +407,28 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         backgroundColor: AppColors.background,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: Colors.grey,
         currentIndex: _selectedIndex,
         onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
+          if (index == 1) {
+            // Navegar para a tela de chat quando o botão de chat for clicado
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ChatListScreen(),
+              ),
+            );
+          } else if (index == 2) {
+            // Navegar para a tela de notificações quando o botão de notificações for clicado
+            Navigator.pushNamed(context, '/notifications');
+          } else {
+            setState(() {
+              _selectedIndex = index;
+            });
+          }
         },
         items: [
           BottomNavigationBarItem(

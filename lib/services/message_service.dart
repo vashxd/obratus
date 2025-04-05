@@ -1,10 +1,12 @@
 import '../models/message_model.dart';
 import 'local_storage_service.dart';
+import 'notification_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
 
 class MessageService {
   final LocalStorageService _storage = LocalStorageService();
+  final NotificationService _notificationService = NotificationService();
   final Uuid _uuid = Uuid();
 
   // Criar ou obter chat entre dois usuários
@@ -15,6 +17,7 @@ class MessageService {
       participants.sort();
 
       final chatsBox = _storage.getBox(LocalStorageService.chatsBoxName);
+      final usersBox = _storage.getBox(LocalStorageService.usersBoxName);
       
       // Verificar se já existe um chat entre esses usuários
       String? existingChatId;
@@ -39,6 +42,18 @@ class MessageService {
       final chatId = _uuid.v4();
       final now = DateTime.now();
 
+      // Obter informações dos participantes
+      Map<String, String> participantNames = {};
+      Map<String, String?> participantPhotos = {};
+      
+      for (String participantId in participants) {
+        final userData = usersBox.get(participantId);
+        if (userData != null) {
+          participantNames[participantId] = userData['name'] ?? 'Usuário';
+          participantPhotos[participantId] = userData['photoUrl'];
+        }
+      }
+
       final chat = ChatModel(
         id: chatId,
         participants: participants,
@@ -48,6 +63,8 @@ class MessageService {
         lastMessageSenderId: '',
         unreadCount: {userId1: 0, userId2: 0},
         projectId: projectId,
+        participantNames: participantNames,
+        participantPhotos: participantPhotos,
       );
 
       await chatsBox.put(chatId, chat.toJson());
@@ -62,6 +79,7 @@ class MessageService {
     try {
       final messagesBox = _storage.getBox(LocalStorageService.messagesBoxName);
       final chatsBox = _storage.getBox(LocalStorageService.chatsBoxName);
+      final usersBox = _storage.getBox(LocalStorageService.usersBoxName);
       
       // Criar a mensagem
       final messageId = _uuid.v4();
@@ -83,6 +101,24 @@ class MessageService {
         chatData['unreadCount'] = unreadCount;
         
         await chatsBox.put(message.chatId, chatData);
+        
+        // Criar notificação para o destinatário
+        final senderData = usersBox.get(message.senderId);
+        if (senderData != null) {
+          final senderName = senderData['name'] ?? 'Usuário';
+          final senderPhotoUrl = senderData['photoUrl'];
+          
+          // Criar notificação apenas se o destinatário não for o remetente
+          if (message.senderId != message.receiverId) {
+            await _notificationService.createMessageNotification(
+              userId: message.receiverId,
+              senderName: senderName,
+              messageText: message.text,
+              chatId: message.chatId,
+              senderPhotoUrl: senderPhotoUrl,
+            );
+          }
+        }
       }
 
       return messageId;
@@ -151,6 +187,7 @@ class MessageService {
   Stream<List<ChatModel>> getUserChats(String userId) {
     try {
       final chatsBox = _storage.getBox(LocalStorageService.chatsBoxName);
+      final usersBox = _storage.getBox(LocalStorageService.usersBoxName);
       
       // Criar um stream que emite uma nova lista quando há mudanças
       return chatsBox.watch().map((event) {
@@ -159,7 +196,38 @@ class MessageService {
               final participants = List<String>.from(chat['participants']);
               return participants.contains(userId);
             })
-            .map((chat) => ChatModel.fromJson(Map<String, dynamic>.from(chat)))
+            .map((chat) {
+              // Converter para ChatModel
+              Map<String, dynamic> chatData = Map<String, dynamic>.from(chat);
+              
+              // Adicionar informações dos participantes
+              if (chatData['participantNames'] == null) {
+                chatData['participantNames'] = {};
+              }
+              if (chatData['participantPhotos'] == null) {
+                chatData['participantPhotos'] = {};
+              }
+              
+              // Obter informações dos participantes
+              List<String> participants = List<String>.from(chatData['participants']);
+              for (String participantId in participants) {
+                // Verificar se já temos as informações deste participante
+                if (chatData['participantNames'][participantId] == null) {
+                  // Buscar informações do usuário
+                  final userData = usersBox.get(participantId);
+                  if (userData != null) {
+                    // Adicionar nome e foto do usuário
+                    chatData['participantNames'][participantId] = userData['name'] ?? 'Usuário';
+                    chatData['participantPhotos'][participantId] = userData['photoUrl'];
+                    
+                    // Atualizar o chat no banco de dados
+                    chatsBox.put(chatData['id'], chatData);
+                  }
+                }
+              }
+              
+              return ChatModel.fromJson(chatData);
+            })
             .toList();
         
         // Ordenar por timestamp da última mensagem
@@ -211,6 +279,7 @@ class MessageService {
         imageUrl: imageUrl,
       );
 
+      // Usar o método sendMessage que já inclui a criação de notificação
       return await sendMessage(message);
     } catch (e) {
       rethrow;
