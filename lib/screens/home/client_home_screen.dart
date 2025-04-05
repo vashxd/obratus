@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/user_model.dart';
+import '../../screens/projects/client_projects_screen.dart';
 
 class ClientHomeScreen extends StatefulWidget {
   const ClientHomeScreen({Key? key}) : super(key: key);
@@ -136,9 +137,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                 subtitle: 'Escolha o profissional ideal',
                 onTap: () {
                   // Navegar para tela de profissionais
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Funcionalidade em desenvolvimento')),
-                  );
+                  Navigator.pushNamed(context, '/professionals');
                 },
               ),
               SizedBox(height: 32),
@@ -161,8 +160,11 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                     title: 'Minhas obras',
                     onTap: () {
                       // Navegar para tela de obras
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Funcionalidade em desenvolvimento')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ClientProjectsScreen(),
+                        ),
                       );
                     },
                   ),

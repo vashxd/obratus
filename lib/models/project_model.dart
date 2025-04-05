@@ -74,6 +74,25 @@ class ProjectModel {
       'photoUrls': photoUrls,
     };
   }
+  
+  // Método para converter para JSON compatível com Hive
+  Map<String, dynamic> toHiveJson() {
+    return {
+      'id': id,
+      'clientId': clientId,
+      'professionalId': professionalId,
+      'title': title,
+      'description': description,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'startDate': startDate != null ? Timestamp.fromDate(startDate!) : null,
+      'endDate': endDate != null ? Timestamp.fromDate(endDate!) : null,
+      'status': status,
+      'materials': materials.map((e) => e.toJson()).toList(),
+      'budget': budget,
+      'location': location,
+      'photoUrls': photoUrls,
+    };
+  }
 
   ProjectModel copyWith({
     String? id,

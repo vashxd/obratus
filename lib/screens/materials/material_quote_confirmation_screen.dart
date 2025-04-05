@@ -70,43 +70,62 @@ class MaterialQuoteConfirmationScreen extends StatelessWidget {
             ),
             const SizedBox(height: 40),
             // Botões de ação
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Navegar para a tela de lista de orçamentos do cliente
-                  Navigator.pushNamedAndRemoveUntil(
-                    context, 
-                    '/client_home', 
-                    (route) => false,
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade800,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+            if (quote.projectId != null)
+              // Se o orçamento está associado a um projeto, mostrar botão para voltar ao projeto
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Voltar para a tela de detalhes do projeto
+                    Navigator.pop(context);
+                    Navigator.pop(context); // Volta duas vezes para chegar à tela de detalhes do projeto
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade800,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text('VOLTAR PARA DETALHES DA OBRA'),
                 ),
-                child: const Text('JÁ TEM UMA LISTA? CLIQUE PARA ANEXAR'),
+              )
+            else
+              // Se não está associado a um projeto, mostrar botões padrão
+              Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Navegar para a tela de lista de orçamentos do cliente
+                        Navigator.pushNamedAndRemoveUntil(
+                          context, 
+                          '/client_home', 
+                          (route) => false,
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green.shade800,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text('JÁ TEM UMA LISTA? CLIQUE PARA ANEXAR'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Navegar para a tela de seleção de especialidades profissionais
+                        Navigator.pushNamed(context, '/professionals');
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green.shade800,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text('QUER CONTRATAR UM PROFISSIONAL?'),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Navegar para a tela de profissionais
-                  Navigator.pushNamedAndRemoveUntil(
-                    context, 
-                    '/client_home', 
-                    (route) => false,
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade800,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text('QUER CONTRATAR UM PROFISSIONAL?'),
-              ),
-            ),
           ],
         ),
       ),

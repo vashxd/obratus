@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/social_login_button.dart';
@@ -171,7 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   SizedBox(
                     height: 100,
                     width: 100,
-                    child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
+                    child: SvgPicture.asset('assets/images/logo.svg', fit: BoxFit.contain),
                   ),
                   const SizedBox(height: 16),
                   // Nome do app
