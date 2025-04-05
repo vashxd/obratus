@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class MaterialItem {
   final String id;
   final String name;
@@ -87,6 +89,21 @@ class MaterialQuote {
       'items': items.map((item) => item.toJson()).toList(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
+      'status': status,
+      'totalPrice': totalPrice,
+      'notes': notes,
+    };
+  }
+  
+  // Método para converter para JSON compatível com Hive
+  Map<String, dynamic> toHiveJson() {
+    return {
+      'id': id,
+      'clientId': clientId,
+      'professionalId': professionalId,
+      'items': items.map((e) => e.toJson()).toList(),
+      'createdAt': createdAt is DateTime ? Timestamp.fromDate(createdAt) : createdAt,
+      'updatedAt': updatedAt != null ? (updatedAt is DateTime ? Timestamp.fromDate(updatedAt!) : updatedAt) : null,
       'status': status,
       'totalPrice': totalPrice,
       'notes': notes,

@@ -29,8 +29,8 @@ class LocalMaterialService {
       status: 'pending', // status inicial: pendente
     );
     
-    // Salvar no Hive
-    await materialsBox.put(quote.id, quote.toJson());
+    // Salvar no Hive usando o método toHiveJson()
+    await materialsBox.put(quote.id, quote.toHiveJson());
     
     return quote;
   }
