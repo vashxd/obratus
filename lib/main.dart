@@ -11,6 +11,9 @@ import 'screens/materials/material_list_screen.dart';
 import 'screens/materials/client_quotes_screen.dart';
 import 'screens/materials/professional_quotes_screen.dart';
 import 'screens/professionals/professional_specialties_screen.dart';
+import 'screens/chat/chat_list_screen.dart';
+import 'screens/chat/chat_screen.dart';
+import 'screens/notifications/notifications_screen.dart';
 import 'constants/app_theme.dart';
 import 'services/local_storage_service.dart';
 import 'services/local_auth_service.dart';
@@ -57,6 +60,26 @@ class MyApp extends StatelessWidget {
           '/client_quotes': (context) => const ClientQuotesScreen(),
           '/professional_quotes': (context) => const ProfessionalQuotesScreen(),
           '/professionals': (context) => const ProfessionalSpecialtiesScreen(),
+          '/chat': (context) => const ChatListScreen(),
+          '/notifications': (context) => const NotificationsScreen(),
+        },
+        onGenerateRoute: (settings) {
+          // Manipular rotas dinâmicas
+          if (settings.name == '/chat_detail') {
+            // Extrair o chatId dos argumentos
+            final chatId = settings.arguments as String;
+            
+            // Buscar informações do chat (isso seria melhor implementado com um serviço)
+            // Por enquanto, apenas navegamos para a tela de chat com o ID
+            return MaterialPageRoute(
+              builder: (context) => ChatScreen(
+                receiverId: chatId,
+                receiverName: 'Usuário', // Isso deveria ser obtido do serviço
+                receiverPhotoUrl: null,
+              ),
+            );
+          }
+          return null;
         },
       ),
     );
