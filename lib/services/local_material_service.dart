@@ -82,6 +82,95 @@ class LocalMaterialService {
     return quotes;
   }
   
+  // Obter orçamentos pendentes para um profissional específico
+  // Filtra orçamentos de projetos aos quais o profissional está vinculado
+  Future<List<MaterialQuote>> getPendingQuotesByProfessional(String professionalId) async {
+    final materialsBox = _getMaterialsBox();
+    final projectsBox = _storageService.getBox(LocalStorageService.projectsBoxName);
+    
+    // Lista para armazenar os IDs dos projetos vinculados ao profissional
+    final List<String> linkedProjectIds = [];
+    
+    // Buscar todos os projetos vinculados ao profissional
+    for (var key in projectsBox.keys) {
+      final projectData = projectsBox.get(key);
+      if (projectData != null) {
+        final Map<String, dynamic> projectMap = Map<String, dynamic>.from(projectData);
+        final List<dynamic> professionalIds = projectMap['professionalIds'] ?? [];
+        
+        // Verificar se o profissional está vinculado a este projeto
+        if (professionalIds.contains(professionalId)) {
+          linkedProjectIds.add(key.toString());
+        }
+      }
+    }
+    
+    // Filtrar orçamentos pendentes dos projetos vinculados ao profissional
+    final List<MaterialQuote> quotes = [];
+    
+    for (var key in materialsBox.keys) {
+      final data = materialsBox.get(key);
+      if (data != null) {
+        final quote = MaterialQuote.fromJson(Map<String, dynamic>.from(data));
+        // Verificar se o orçamento está pendente e pertence a um projeto vinculado ao profissional
+        if (quote.status == 'pending' && quote.projectId != null && linkedProjectIds.contains(quote.projectId)) {
+          quotes.add(quote);
+        }
+      }
+    }
+    
+    // Ordenar por data de criação (mais antigo primeiro)
+    quotes.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    
+    return quotes;
+  }
+  
+  // Obter orçamentos por status para um profissional específico
+  Future<List<MaterialQuote>> getQuotesByStatusAndProfessional(String professionalId, String status) async {
+    final materialsBox = _getMaterialsBox();
+    final projectsBox = _storageService.getBox(LocalStorageService.projectsBoxName);
+    
+    // Lista para armazenar os IDs dos projetos vinculados ao profissional
+    final List<String> linkedProjectIds = [];
+    
+    // Buscar todos os projetos vinculados ao profissional
+    for (var key in projectsBox.keys) {
+      final projectData = projectsBox.get(key);
+      if (projectData != null) {
+        final Map<String, dynamic> projectMap = Map<String, dynamic>.from(projectData);
+        final List<dynamic> professionalIds = projectMap['professionalIds'] ?? [];
+        
+        // Verificar se o profissional está vinculado a este projeto
+        if (professionalIds.contains(professionalId)) {
+          linkedProjectIds.add(key.toString());
+        }
+      }
+    }
+    
+    // Filtrar orçamentos pelo status e dos projetos vinculados ao profissional
+    final List<MaterialQuote> quotes = [];
+    
+    for (var key in materialsBox.keys) {
+      final data = materialsBox.get(key);
+      if (data != null) {
+        final quote = MaterialQuote.fromJson(Map<String, dynamic>.from(data));
+        // Verificar se o orçamento tem o status solicitado e pertence a um projeto vinculado ao profissional
+        if (quote.status == status && quote.projectId != null && linkedProjectIds.contains(quote.projectId)) {
+          quotes.add(quote);
+        }
+      }
+    }
+    
+    // Ordenar por data de criação (mais recente primeiro para orçamentos já respondidos)
+    if (status == 'pending') {
+      quotes.sort((a, b) => a.createdAt.compareTo(b.createdAt)); // Mais antigo primeiro para pendentes
+    } else {
+      quotes.sort((a, b) => b.createdAt.compareTo(a.createdAt)); // Mais recente primeiro para outros status
+    }
+    
+    return quotes;
+  }
+  
   // Obter todos os orçamentos de um projeto específico
   Future<List<MaterialQuote>> getProjectQuotes(String projectId) async {
     final materialsBox = _getMaterialsBox();
@@ -136,6 +225,7 @@ class LocalMaterialService {
         id: quote.id,
         clientId: quote.clientId,
         professionalId: professionalId,
+        projectId: quote.projectId, // Manter o ID do projeto
         items: quote.items,
         createdAt: quote.createdAt,
         updatedAt: DateTime.now(),
@@ -144,8 +234,8 @@ class LocalMaterialService {
         notes: notes,
       );
       
-      // Salvar no Hive
-      await materialsBox.put(quoteId, updatedQuote.toJson());
+      // Salvar no Hive usando o método toHiveJson()
+      await materialsBox.put(quoteId, updatedQuote.toHiveJson());
       
       return updatedQuote;
     }
@@ -167,6 +257,7 @@ class LocalMaterialService {
         id: quote.id,
         clientId: quote.clientId,
         professionalId: quote.professionalId,
+        projectId: quote.projectId, // Manter o ID do projeto
         items: quote.items,
         createdAt: quote.createdAt,
         updatedAt: DateTime.now(),
@@ -175,8 +266,8 @@ class LocalMaterialService {
         notes: quote.notes,
       );
       
-      // Salvar no Hive
-      await materialsBox.put(quoteId, updatedQuote.toJson());
+      // Salvar no Hive usando o método toHiveJson()
+      await materialsBox.put(quoteId, updatedQuote.toHiveJson());
       
       return updatedQuote;
     }
