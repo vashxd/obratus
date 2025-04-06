@@ -4,6 +4,7 @@ import '../../models/professional_model.dart';
 import '../../models/user_model.dart';
 import '../../models/project_model.dart';
 import '../../services/local_project_service.dart';
+import '../../screens/projects/project_detail_screen.dart';
 
 class ProfessionalDetailScreen extends StatefulWidget {
   final ProfessionalModel professional;
@@ -41,7 +42,16 @@ class _ProfessionalDetailScreenState extends State<ProfessionalDetailScreen> {
       }
 
       // Atualizar o projeto com o ID do profissional
-      final updatedProject = project.copyWith(professionalId: widget.professional.id);
+      // Adicionar o ID do profissional à lista de profissionais vinculados
+      List<String> updatedProfessionalIds = List<String>.from(project.professionalIds);
+      if (!updatedProfessionalIds.contains(widget.professional.id)) {
+        updatedProfessionalIds.add(widget.professional.id);
+      }
+      
+      final updatedProject = project.copyWith(
+        professionalId: widget.professional.id,
+        professionalIds: updatedProfessionalIds
+      );
       await _projectService.updateProject(updatedProject);
 
       // Mostrar mensagem de sucesso
@@ -50,8 +60,13 @@ class _ProfessionalDetailScreenState extends State<ProfessionalDetailScreen> {
           SnackBar(content: Text('Profissional vinculado com sucesso!'))
         );
         
-        // Retornar para a tela anterior com resultado positivo
-        Navigator.pop(context, true);
+        // Navegar diretamente para a tela de detalhes da obra
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProjectDetailScreen(projectId: widget.projectId!),
+          ),
+        );
       }
     } catch (e) {
       setState(() {

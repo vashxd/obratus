@@ -156,8 +156,15 @@ class LocalProjectService {
         throw Exception('Projeto não encontrado');
       }
       
+      // Adicionar o ID do profissional à lista de profissionais vinculados
+      List<String> updatedProfessionalIds = List<String>.from(project.professionalIds);
+      if (!updatedProfessionalIds.contains(professionalId)) {
+        updatedProfessionalIds.add(professionalId);
+      }
+      
       final updatedProject = project.copyWith(
-        professionalId: professionalId,
+        professionalId: professionalId,  // Define como profissional principal
+        professionalIds: updatedProfessionalIds,
         status: 'em_andamento',
       );
       
@@ -193,6 +200,35 @@ class LocalProjectService {
       final List<String> currentPhotoUrls = project.photoUrls?.cast<String>() ?? [];
       final updatedPhotoUrls = [...currentPhotoUrls, ...photoUrls];
       final updatedProject = project.copyWith(photoUrls: updatedPhotoUrls);
+      
+      await updateProject(updatedProject);
+    } catch (e) {
+      rethrow;
+    }
+  }
+  
+  // Remover profissional do projeto
+  Future<void> removeProfessionalFromProject(String projectId, String professionalId) async {
+    try {
+      final project = getProjectById(projectId);
+      if (project == null) {
+        throw Exception('Projeto não encontrado');
+      }
+      
+      // Remover o ID do profissional da lista de profissionais vinculados
+      List<String> updatedProfessionalIds = List<String>.from(project.professionalIds)
+        ..removeWhere((id) => id == professionalId);
+      
+      // Se o profissional principal for removido, definir como null
+      String? updatedProfessionalId = project.professionalId;
+      if (project.professionalId == professionalId) {
+        updatedProfessionalId = updatedProfessionalIds.isNotEmpty ? updatedProfessionalIds.first : null;
+      }
+      
+      final updatedProject = project.copyWith(
+        professionalId: updatedProfessionalId,
+        professionalIds: updatedProfessionalIds,
+      );
       
       await updateProject(updatedProject);
     } catch (e) {

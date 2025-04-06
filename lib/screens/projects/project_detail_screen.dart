@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../models/material_model.dart' hide MaterialItem;
 import '../../models/project_model.dart';
+import '../../models/professional_model.dart';
+import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/local_material_service.dart';
 import '../../services/local_project_service.dart';
@@ -104,6 +106,271 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         SnackBar(content: Text('Erro ao carregar perfil do profissional: ${e.toString()}')),
       );
     }
+  }
+  
+  // Método para remover um profissional da obra
+  Future<void> _removeProfessionalFromProject(String professionalId) async {
+    try {
+      // Confirmar a remoção
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppColors.cardBackground,
+          title: Text(
+            'Remover profissional',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: Text(
+            'Tem certeza que deseja remover este profissional da obra?',
+            style: TextStyle(color: Colors.white),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Cancelar', style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text('Remover', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+      
+      if (confirm != true) return;
+      
+      setState(() {
+        _isLoading = true;
+      });
+      
+      // Carregar o projeto atual
+      final project = _projectService.getProjectById(widget.projectId);
+      if (project == null) {
+        throw Exception('Projeto não encontrado');
+      }
+      
+      // Remover o ID do profissional da lista
+      List<String> updatedProfessionalIds = List<String>.from(project.professionalIds)
+        ..removeWhere((id) => id == professionalId);
+      
+      // Se o profissional principal for removido, atualizar o professionalId
+      String? updatedProfessionalId = project.professionalId;
+      if (project.professionalId == professionalId) {
+        updatedProfessionalId = updatedProfessionalIds.isNotEmpty ? updatedProfessionalIds.first : null;
+      }
+      
+      // Atualizar o projeto
+      final updatedProject = project.copyWith(
+        professionalId: updatedProfessionalId,
+        professionalIds: updatedProfessionalIds
+      );
+      
+      await _projectService.updateProject(updatedProject);
+      
+      setState(() {
+        _isLoading = false;
+      });
+      
+      // Recarregar o projeto
+      _loadProject();
+      
+      // Mostrar mensagem de sucesso
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Profissional removido com sucesso')),
+      );
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao remover profissional: ${e.toString()}')),
+      );
+    }
+  }
+  
+  // Widget para exibir um item de profissional na lista
+  Widget _buildProfessionalItem(String professionalId, {bool isPrimary = false}) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: () async {
+        final professionalService = ProfessionalService();
+        final professional = await professionalService.getProfessionalById(professionalId);
+        if (professional == null) return null;
+        
+        final user = await professionalService.getUserByProfessionalId(professionalId);
+        if (user == null) return null;
+        
+        return {
+          'professional': professional,
+          'user': user,
+        };
+      }(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(8),
+              border: isPrimary ? Border.all(color: Colors.orange, width: 1) : null,
+            ),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          );
+        }
+        
+        if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+          return Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.red),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Erro ao carregar informações do profissional',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete, color: Colors.red, size: 20),
+                  onPressed: () => _removeProfessionalFromProject(professionalId),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        final professional = snapshot.data!['professional'] as ProfessionalModel;
+        final user = snapshot.data!['user'] as UserModel;
+        
+        return Container(
+          padding: EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.cardBackground,
+            borderRadius: BorderRadius.circular(8),
+            border: isPrimary ? Border.all(color: Colors.orange, width: 1) : null,
+          ),
+          child: Row(
+            children: [
+              // Avatar do profissional
+              CircleAvatar(
+                backgroundColor: AppColors.primary,
+                radius: 24,
+                child: user.photoUrl != null
+                    ? ClipOval(
+                        child: Image.network(
+                          user.photoUrl!,
+                          width: 48,
+                          height: 48,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : Icon(Icons.person, color: Colors.white),
+              ),
+              SizedBox(width: 12),
+              
+              // Informações do profissional
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            user.name,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        if (isPrimary) ...[  
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.orange,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Principal',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      professional.specialties.join(', '),
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 12,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.star, color: Colors.amber, size: 14),
+                        SizedBox(width: 4),
+                        Text(
+                          '${professional.rating.toStringAsFixed(1)} (${professional.ratingCount})',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Botões de ação
+              Column(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.visibility, color: Colors.blue, size: 20),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProfessionalDetailScreen(
+                            professional: professional,
+                            user: user,
+                          ),
+                        ),
+                      );
+                    },
+                    tooltip: 'Ver perfil',
+                    constraints: BoxConstraints(minWidth: 40, minHeight: 40),
+                    padding: EdgeInsets.zero,
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.delete, color: Colors.red, size: 20),
+                    onPressed: () => _removeProfessionalFromProject(professionalId),
+                    tooltip: 'Remover',
+                    constraints: BoxConstraints(minWidth: 40, minHeight: 40),
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -285,9 +552,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           ),
           SizedBox(height: 24),
           
-          // Profissional
+          // Profissionais
           Text(
-            'Profissional',
+            'Profissionais',
             style: TextStyle(
               color: AppColors.primary,
               fontSize: 18,
@@ -302,76 +569,83 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               color: AppColors.cardBackground,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: project.professionalId != null
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Profissional atribuído',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Título da seção
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      project.professionalIds.isNotEmpty
+                          ? 'Profissionais vinculados'
+                          : 'Nenhum profissional vinculado',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
-                      SizedBox(height: 8),
-                      Text(
-                        'ID: ${project.professionalId}',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-                        ),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        minimumSize: Size(0, 32),
                       ),
-                      SizedBox(height: 16),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        ),
-                        onPressed: () {
-                          // Buscar e exibir informações do profissional
-                          _viewProfessionalProfile(project.professionalId!);
-                        },
-                        child: Text('Ver perfil'),
-                      ),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Nenhum profissional atribuído',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        ),
-                        onPressed: () {
-                          // Navegar para tela de especialidades de profissionais
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ProfessionalSpecialtiesScreen(
-                                projectId: widget.projectId,
-                              ),
+                      onPressed: () {
+                        // Navegar para tela de especialidades de profissionais
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ProfessionalSpecialtiesScreen(
+                              projectId: widget.projectId,
                             ),
-                          ).then((result) {
-                            // Recarregar o projeto se um profissional foi atribuído
-                            if (result == true) {
-                              _loadProject();
-                            }
-                          });
-                        },
-                        child: Text('Buscar profissional'),
-                      ),
-                    ],
+                          ),
+                        ).then((result) {
+                          // Recarregar o projeto se um profissional foi atribuído
+                          if (result == true) {
+                            _loadProject();
+                          }
+                        });
+                      },
+                      child: Text('Adicionar'),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16),
+                
+                // Lista de profissionais
+                if (project.professionalIds.isEmpty) ...[  
+                  Text(
+                    'Adicione profissionais à sua obra para acompanhar o trabalho.',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
                   ),
+                ] else ...[  
+                  // Profissional principal (se houver)
+                  if (project.professionalId != null) ...[  
+                    _buildProfessionalItem(
+                      project.professionalId!,
+                      isPrimary: true,
+                    ),
+                    SizedBox(height: 8),
+                  ],
+                  
+                  // Outros profissionais
+                  ...project.professionalIds
+                      .where((id) => id != project.professionalId)
+                      .map((id) => Column(
+                            children: [
+                              _buildProfessionalItem(id),
+                              SizedBox(height: 8),
+                            ],
+                          ))
+                      .toList(),
+                ],
+              ],
+            ),
           ),
           SizedBox(height: 24),
           

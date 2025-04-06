@@ -3,7 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class ProjectModel {
   final String id;
   final String clientId; // ID do cliente que criou o projeto
-  final String? professionalId; // ID do profissional contratado (pode ser nulo se ainda não contratado)
+  final String? professionalId; // ID do profissional principal contratado (pode ser nulo se ainda não contratado)
+  final List<String> professionalIds; // Lista de IDs dos profissionais vinculados à obra
   final String title; // Título do projeto
   final String description; // Descrição do projeto
   final DateTime createdAt; // Data de criação
@@ -19,6 +20,7 @@ class ProjectModel {
     required this.id,
     required this.clientId,
     this.professionalId,
+    this.professionalIds = const [],
     required this.title,
     required this.description,
     required this.createdAt,
@@ -36,6 +38,9 @@ class ProjectModel {
       id: json['id'] as String,
       clientId: json['clientId'] as String,
       professionalId: json['professionalId'] as String?,
+      professionalIds: json['professionalIds'] != null
+          ? List<String>.from(json['professionalIds'] as List)
+          : [],
       title: json['title'] as String,
       description: json['description'] as String,
       createdAt: (json['createdAt'] as Timestamp).toDate(),
@@ -62,6 +67,7 @@ class ProjectModel {
       'id': id,
       'clientId': clientId,
       'professionalId': professionalId,
+      'professionalIds': professionalIds,
       'title': title,
       'description': description,
       'createdAt': Timestamp.fromDate(createdAt),
@@ -81,6 +87,7 @@ class ProjectModel {
       'id': id,
       'clientId': clientId,
       'professionalId': professionalId,
+      'professionalIds': professionalIds,
       'title': title,
       'description': description,
       'createdAt': Timestamp.fromDate(createdAt),
@@ -98,6 +105,7 @@ class ProjectModel {
     String? id,
     String? clientId,
     String? professionalId,
+    List<String>? professionalIds,
     String? title,
     String? description,
     DateTime? createdAt,
@@ -113,6 +121,7 @@ class ProjectModel {
       id: id ?? this.id,
       clientId: clientId ?? this.clientId,
       professionalId: professionalId ?? this.professionalId,
+      professionalIds: professionalIds ?? this.professionalIds,
       title: title ?? this.title,
       description: description ?? this.description,
       createdAt: createdAt ?? this.createdAt,
