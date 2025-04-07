@@ -81,10 +81,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
 
         if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const UserTypeScreen()),
-          );
+          // Navigate to login screen instead of user type screen
+          Navigator.pushReplacementNamed(context, '/');
         }
       } catch (e) {
         if (mounted) {

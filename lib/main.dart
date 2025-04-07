@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'providers/auth_provider.dart' as app_provider;
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/register_screen.dart'; // Add this import
 import 'screens/home/user_type_screen.dart';
 import 'screens/home/client_home_screen.dart';
 import 'screens/home/professional_home_screen.dart';
@@ -53,6 +54,7 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         routes: {
           '/': (context) => const LoginScreen(),
+          '/register': (context) => const RegisterScreen(), // Add registration route
           '/user_type': (context) => const UserTypeScreen(),
           '/client_home': (context) => const ClientHomeScreen(),
           '/professional_home': (context) => const ProfessionalHomeScreen(),
