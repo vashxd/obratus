@@ -66,16 +66,19 @@ class MyApp extends StatelessWidget {
         onGenerateRoute: (settings) {
           // Manipular rotas dinâmicas
           if (settings.name == '/chat_detail') {
-            // Extrair o chatId dos argumentos
-            final chatId = settings.arguments as String;
+            // Extrair os argumentos da rota
+            final Map<String, dynamic> args = settings.arguments as Map<String, dynamic>;
+            final String receiverId = args['receiverId'];
+            final String receiverName = args['receiverName'] ?? 'Usuário';
+            final String? receiverPhotoUrl = args['receiverPhotoUrl'];
+            final String? projectId = args['projectId'];
             
-            // Buscar informações do chat (isso seria melhor implementado com um serviço)
-            // Por enquanto, apenas navegamos para a tela de chat com o ID
             return MaterialPageRoute(
               builder: (context) => ChatScreen(
-                receiverId: chatId,
-                receiverName: 'Usuário', // Isso deveria ser obtido do serviço
-                receiverPhotoUrl: null,
+                receiverId: receiverId,
+                receiverName: receiverName,
+                receiverPhotoUrl: receiverPhotoUrl,
+                projectId: projectId,
               ),
             );
           }

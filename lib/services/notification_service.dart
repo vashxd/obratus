@@ -160,12 +160,19 @@ class NotificationService {
     required String senderName,
     required String messageText,
     required String chatId,
+    required String senderId,
     String? senderPhotoUrl,
   }) async {
     final title = 'Nova mensagem de $senderName';
     final message = messageText.length > 50 
         ? '${messageText.substring(0, 47)}...'
         : messageText;
+    
+    // Incluir dados adicionais para navegação correta
+    Map<String, dynamic> data = {
+      'chatId': chatId,
+      'senderId': senderId
+    };
     
     return createNotification(
       userId: userId,
@@ -174,6 +181,7 @@ class NotificationService {
       type: 'message',
       sourceId: chatId,
       imageUrl: senderPhotoUrl,
+      data: data,
     );
   }
 

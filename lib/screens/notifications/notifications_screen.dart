@@ -137,15 +137,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           // Navegar para a tela apropriada com base no tipo de notificação
           if (notification.type == 'message' && notification.data != null) {
             final chatId = notification.data!['chatId'];
-            if (chatId != null && mounted) {
+            final senderId = notification.data!['senderId'];
+            if (chatId != null && senderId != null && mounted) {
               // Navegar para a tela de chat individual usando MaterialPageRoute
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => ChatScreen(
-                    receiverId: chatId,
+                    receiverId: senderId,
                     receiverName: notification.title.replaceAll('Nova mensagem de ', ''),
                     receiverPhotoUrl: notification.imageUrl,
+                    projectId: null,
                   ),
                 ),
               );

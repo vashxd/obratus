@@ -413,7 +413,10 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
         unselectedItemColor: Colors.grey,
         currentIndex: _selectedIndex,
         onTap: (index) {
-          if (index == 1) {
+          if (index == 0) {
+            // Botão de início - redirecionar para a tela de troca de perfil
+            Navigator.pushReplacementNamed(context, '/user_type');
+          } else if (index == 1) {
             // Navegar para a tela de chat quando o botão de chat for clicado
             Navigator.push(
               context,

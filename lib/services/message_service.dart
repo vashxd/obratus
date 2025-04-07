@@ -115,6 +115,7 @@ class MessageService {
               senderName: senderName,
               messageText: message.text,
               chatId: message.chatId,
+              senderId: message.senderId,
               senderPhotoUrl: senderPhotoUrl,
             );
           }
