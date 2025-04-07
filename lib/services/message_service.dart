@@ -174,8 +174,8 @@ class MessageService {
             .map((msg) => MessageModel.fromJson(Map<String, dynamic>.from(msg)))
             .toList();
         
-        // Ordenar por timestamp
-        messages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        // Ordenar por timestamp (ordem crescente para mostrar mensagens mais antigas primeiro)
+        messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
         return messages;
       });
     } catch (e) {

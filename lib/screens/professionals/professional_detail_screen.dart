@@ -5,6 +5,7 @@ import '../../models/user_model.dart';
 import '../../models/project_model.dart';
 import '../../services/local_project_service.dart';
 import '../../screens/projects/project_detail_screen.dart';
+import '../../screens/chat/chat_screen.dart';
 
 class ProfessionalDetailScreen extends StatefulWidget {
   final ProfessionalModel professional;
@@ -467,8 +468,17 @@ class _ProfessionalDetailScreenState extends State<ProfessionalDetailScreen> {
           Expanded(
             child: ElevatedButton.icon(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Funcionalidade de chat em desenvolvimento')),
+                // Navegar para a tela de chat com este profissional
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChatScreen(
+                      receiverId: widget.professional.userId,
+                      receiverName: widget.user.name,
+                      receiverPhotoUrl: widget.user.photoUrl,
+                      projectId: widget.projectId,
+                    ),
+                  ),
                 );
               },
               icon: Icon(Icons.chat),
