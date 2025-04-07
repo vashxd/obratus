@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/user_model.dart';
+import '../../models/message_model.dart';
 import '../../screens/projects/client_projects_screen.dart';
 import '../../screens/chat/chat_list_screen.dart';
+import '../../services/message_service.dart';
 
 class ClientHomeScreen extends StatefulWidget {
   const ClientHomeScreen({Key? key}) : super(key: key);
@@ -227,51 +230,156 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: AppColors.background,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: Colors.grey,
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          if (index == 0) {
-            // Botão de início - redirecionar para a tela de troca de perfil
-            Navigator.pushReplacementNamed(context, '/user_type');
-          } else if (index == 1) {
-            // Navegar para a tela de chat quando o botão de chat for clicado
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const ChatListScreen(),
-              ),
-            );
-          } else if (index == 2) {
-            // Navegar para a tela de notificações quando o botão de notificações for clicado
-            Navigator.pushNamed(context, '/notifications');
-          } else {
-            setState(() {
-              _selectedIndex = index;
-            });
+      bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
+  
+  // Construir a barra de navegação com indicadores de mensagens não lidas
+  Widget _buildBottomNavigationBar() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final String? userId = authProvider.userId;
+    
+    if (userId == null) {
+      return _buildSimpleBottomNavigationBar();
+    }
+    
+    return StreamBuilder<List<ChatModel>>(
+      stream: MessageService().getUserChats(userId),
+      builder: (context, snapshot) {
+        // Calcular total de mensagens não lidas
+        int unreadCount = 0;
+        if (snapshot.hasData) {
+          for (var chat in snapshot.data!) {
+            unreadCount += chat.unreadCount[userId] ?? 0;
           }
-        },
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Início',
+        }
+        
+        return BottomNavigationBar(
+          backgroundColor: AppColors.background,
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: Colors.grey,
+          currentIndex: _selectedIndex,
+          onTap: (index) {
+            if (index == 0) {
+              // Botão de início - redirecionar para a tela de troca de perfil
+              Navigator.pushReplacementNamed(context, '/user_type');
+            } else if (index == 1) {
+              // Navegar para a tela de chat quando o botão de chat for clicado
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ChatListScreen(),
+                ),
+              );
+            } else if (index == 2) {
+              // Navegar para a tela de notificações quando o botão de notificações for clicado
+              Navigator.pushNamed(context, '/notifications');
+            } else {
+              setState(() {
+                _selectedIndex = index;
+              });
+            }
+          },
+          items: [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: 'Início',
+            ),
+            BottomNavigationBarItem(
+              icon: _buildBadgeIcon(Icons.chat, unreadCount),
+              label: 'Chat',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.notifications),
+              label: 'Notificações',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.mail),
+              label: 'Fale Conosco',
+            ),
+          ],
+        );
+      },
+    );
+  }
+  
+  // Construir ícone com badge de notificação
+  Widget _buildBadgeIcon(IconData icon, int count) {
+    if (count <= 0) {
+      return Icon(icon);
+    }
+    
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(icon),
+        Positioned(
+          top: -5,
+          right: -5,
+          child: Container(
+            padding: EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: Colors.red,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            constraints: BoxConstraints(
+              minWidth: 16,
+              minHeight: 16,
+            ),
+            child: Text(
+              count > 9 ? '9+' : count.toString(),
+              style: TextStyle(color: Colors.white, fontSize: 10),
+              textAlign: TextAlign.center,
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            label: 'Chat',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Notificações',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.mail),
-            label: 'Fale Conosco',
-          ),
-        ],
-      ),
+        ),
+      ],
+    );
+  }
+  
+  // Versão simples da barra de navegação sem indicadores
+  Widget _buildSimpleBottomNavigationBar() {
+    return BottomNavigationBar(
+      backgroundColor: AppColors.background,
+      selectedItemColor: AppColors.primary,
+      unselectedItemColor: Colors.grey,
+      currentIndex: _selectedIndex,
+      onTap: (index) {
+        if (index == 0) {
+          Navigator.pushReplacementNamed(context, '/user_type');
+        } else if (index == 1) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ChatListScreen(),
+            ),
+          );
+        } else if (index == 2) {
+          Navigator.pushNamed(context, '/notifications');
+        } else {
+          setState(() {
+            _selectedIndex = index;
+          });
+        }
+      },
+      items: [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home),
+          label: 'Início',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.chat),
+          label: 'Chat',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.notifications),
+          label: 'Notificações',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.mail),
+          label: 'Fale Conosco',
+        ),
+      ],
     );
   }
 

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async'; // Add this import for Timer
 import '../../constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/user_model.dart';
+import '../../models/message_model.dart';
 import '../../models/professional_model.dart';
 import '../../services/professional_service.dart';
+import '../../services/message_service.dart';
 import '../professionals/professional_profile_edit_screen.dart';
 import '../chat/chat_list_screen.dart';
 
@@ -40,10 +43,65 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
     'Vidraceiro',
   ];
 
+  // Add this to your initState method in ProfessionalHomeScreen:
+  
   @override
   void initState() {
     super.initState();
     _loadProfessionalData();
+    _checkForNewMessages();
+  }
+  
+  // Add this method to check for new messages:
+  Future<void> _checkForNewMessages() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final String? userId = authProvider.userId;
+    
+    if (userId == null) return;
+    
+    // Check for new messages periodically
+    Timer.periodic(Duration(seconds: 5), (timer) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      
+      try {
+        final messageService = MessageService();
+        final newChats = await messageService.checkNewMessages(userId);
+        
+        for (var chat in newChats) {
+          // Mark chat as notified
+          await messageService.markChatAsNotified(chat.id);
+          
+          // Show notification if there are unread messages
+          if ((chat.unreadCount[userId] ?? 0) > 0 && mounted) {
+            // Get the other participant's name
+            final otherParticipantId = chat.participants.firstWhere((id) => id != userId);
+            final otherParticipantName = chat.participantNames[otherParticipantId] ?? 'Usuário';
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Nova mensagem de $otherParticipantName'),
+                action: SnackBarAction(
+                  label: 'Ver',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatListScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        print('Erro ao verificar novas mensagens: $e');
+      }
+    });
   }
   
   Future<void> _loadProfessionalData() async {
@@ -260,198 +318,304 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Text(
-                          '${user?.name ?? "Olá"},',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${user?.name ?? "Olá"},',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                _hasProfile ? 'Perfil Profissional' : 'Selecione suas especialidades',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        SizedBox(height: 8),
-                        Text(
-                          _hasProfile ? 'Perfil Profissional' : 'Selecione suas especialidades',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
+                        // Avaliação
+                        Column(
+                          children: [
+                            Row(
+                              children: List.generate(
+                                5,
+                                (index) => Icon(
+                                  Icons.star,
+                                  color: AppColors.primary,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              'Avaliação (0)',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ),
-                  // Avaliação
-                  Column(
-                    children: [
-                      Row(
-                        children: List.generate(
-                          5,
-                          (index) => Icon(
-                            Icons.star,
-                            color: AppColors.primary,
-                            size: 16,
+                    SizedBox(height: 24),
+                    // Conteúdo condicional: Lista de especialidades ou Perfil do profissional
+                    Expanded(
+                      child: _hasProfile ? _buildProfessionalProfile() : _buildSpecialtiesSelector(),
+                    ),
+                    SizedBox(height: 16),
+                    // Botão para salvar especialidades (apenas se não tiver perfil)
+                    if (!_hasProfile)
+                      ElevatedButton(
+                        onPressed: _saveSpecialties,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          minimumSize: Size(double.infinity, 50),
+                        ),
+                        child: Text('Salvar Especialidades'),
+                      ),
+                    SizedBox(height: 16),
+                    // Opção para alterar para perfil de cliente
+                    InkWell(
+                      onTap: () {
+                        Navigator.pushReplacementNamed(context, '/user_type');
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBackground,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.swap_horiz, color: Colors.white),
+                            SizedBox(width: 8),
+                            Text(
+                              'Alterar para perfil de cliente',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    // Espaço removido - botão de edição de perfil foi mantido apenas na seção de perfil
+                    SizedBox(height: 16),
+                    // Botão para comprar material
+                    InkWell(
+                      onTap: () {
+                        Navigator.pushNamed(context, '/material_list');
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade900,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'QUER COMPRAR MATERIAL?',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
-                      Text(
-                        'Avaliação (0)',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
+                    ),
+                    SizedBox(height: 16),
+                    // Botão para acessar orçamentos pendentes
+                    InkWell(
+                      onTap: () {
+                        Navigator.pushNamed(context, '/professional_quotes');
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'ORÇAMENTOS PENDENTES',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
-              SizedBox(height: 24),
-              // Conteúdo condicional: Lista de especialidades ou Perfil do profissional
-              Expanded(
-                child: _hasProfile ? _buildProfessionalProfile() : _buildSpecialtiesSelector(),
-              ),
-              SizedBox(height: 16),
-              // Botão para salvar especialidades (apenas se não tiver perfil)
-              if (!_hasProfile)
-                ElevatedButton(
-                  onPressed: _saveSpecialties,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    minimumSize: Size(double.infinity, 50),
-                  ),
-                  child: Text('Salvar Especialidades'),
-                ),
-              SizedBox(height: 16),
-              // Opção para alterar para perfil de cliente
-              InkWell(
-                onTap: () {
-                  Navigator.pushReplacementNamed(context, '/user_type');
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.cardBackground,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.swap_horiz, color: Colors.white),
-                      SizedBox(width: 8),
-                      Text(
-                        'Alterar para perfil de cliente',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: 16),
-              // Espaço removido - botão de edição de perfil foi mantido apenas na seção de perfil
-              SizedBox(height: 16),
-              // Botão para comprar material
-              InkWell(
-                onTap: () {
-                  Navigator.pushNamed(context, '/material_list');
-                },
-                child: Container(
-                  width: double.infinity,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade900,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'QUER COMPRAR MATERIAL?',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-              SizedBox(height: 16),
-              // Botão para acessar orçamentos pendentes
-              InkWell(
-                onTap: () {
-                  Navigator.pushNamed(context, '/professional_quotes');
-                },
-                child: Container(
-                  width: double.infinity,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'ORÇAMENTOS PENDENTES',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+            ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
+  
+  // Construir a barra de navegação com indicadores de mensagens não lidas
+  Widget _buildBottomNavigationBar() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final String? userId = authProvider.userId;
+    
+    if (userId == null) {
+      return _buildSimpleBottomNavigationBar();
+    }
+    
+    return StreamBuilder<List<ChatModel>>(
+      stream: MessageService().getUserChats(userId),
+      builder: (context, snapshot) {
+        // Calcular total de mensagens não lidas
+        int unreadCount = 0;
+        if (snapshot.hasData) {
+          for (var chat in snapshot.data!) {
+            unreadCount += chat.unreadCount[userId] ?? 0;
+          }
+        }
+        
+        return BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: AppColors.background,
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: Colors.grey,
+          currentIndex: _selectedIndex,
+          onTap: (index) {
+            if (index == 0) {
+              // Botão de início - redirecionar para a tela de troca de perfil
+              Navigator.pushReplacementNamed(context, '/user_type');
+            } else if (index == 1) {
+              // Navegar para a tela de chat quando o botão de chat for clicado
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ChatListScreen(),
                 ),
-              ),
-            ],
+              );
+            } else if (index == 2) {
+              // Navegar para a tela de notificações quando o botão de notificações for clicado
+              Navigator.pushNamed(context, '/notifications');
+            } else {
+              setState(() {
+                _selectedIndex = index;
+              });
+            }
+          },
+          items: [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: 'Início',
+            ),
+            BottomNavigationBarItem(
+              icon: _buildBadgeIcon(Icons.chat, unreadCount),
+              label: 'Chat',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.notifications),
+              label: 'Notificações',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.mail),
+              label: 'Fale Conosco',
+            ),
+          ],
+        );
+      },
+    );
+  }
+  
+  // Construir ícone com badge de notificação
+  Widget _buildBadgeIcon(IconData icon, int count) {
+    if (count <= 0) {
+      return Icon(icon);
+    }
+    
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(icon),
+        Positioned(
+          top: -5,
+          right: -5,
+          child: Container(
+            padding: EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: Colors.red,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            constraints: BoxConstraints(
+              minWidth: 16,
+              minHeight: 16,
+            ),
+            child: Text(
+              count > 9 ? '9+' : count.toString(),
+              style: TextStyle(color: Colors.white, fontSize: 10),
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: AppColors.background,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: Colors.grey,
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          if (index == 0) {
-            // Botão de início - redirecionar para a tela de troca de perfil
-            Navigator.pushReplacementNamed(context, '/user_type');
-          } else if (index == 1) {
-            // Navegar para a tela de chat quando o botão de chat for clicado
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const ChatListScreen(),
-              ),
-            );
-          } else if (index == 2) {
-            // Navegar para a tela de notificações quando o botão de notificações for clicado
-            Navigator.pushNamed(context, '/notifications');
-          } else {
-            setState(() {
-              _selectedIndex = index;
-            });
-          }
-        },
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Início',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            label: 'Chat',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Notificações',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.mail),
-            label: 'Fale Conosco',
-          ),
-        ],
-      ),
+      ],
+    );
+  }
+  
+  // Versão simples da barra de navegação sem indicadores
+  Widget _buildSimpleBottomNavigationBar() {
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      backgroundColor: AppColors.background,
+      selectedItemColor: AppColors.primary,
+      unselectedItemColor: Colors.grey,
+      currentIndex: _selectedIndex,
+      onTap: (index) {
+        if (index == 0) {
+          Navigator.pushReplacementNamed(context, '/user_type');
+        } else if (index == 1) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ChatListScreen(),
+            ),
+          );
+        } else if (index == 2) {
+          Navigator.pushNamed(context, '/notifications');
+        } else {
+          setState(() {
+            _selectedIndex = index;
+          });
+        }
+      },
+      items: [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home),
+          label: 'Início',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.chat),
+          label: 'Chat',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.notifications),
+          label: 'Notificações',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.mail),
+          label: 'Fale Conosco',
+        ),
+      ],
     );
   }
   

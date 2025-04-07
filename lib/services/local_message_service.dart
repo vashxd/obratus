@@ -16,13 +16,15 @@ class LocalMessageService {
       final List<String> participants = [userId1, userId2];
       participants.sort();
       
-      final chatsBox = _storageService.getBox(LocalStorageService.chatsBoxName);
+      final chatsBox = await _storageService.openBox(LocalStorageService.chatsBoxName);
       
       // Verificar se já existe um chat entre esses usuários
       String? existingChatId;
       
       for (var key in chatsBox.keys) {
         final chat = chatsBox.get(key);
+        if (chat == null) continue;
+        
         final List<String> chatParticipants = List<String>.from(chat['participants']);
         
         if (chatParticipants.length == participants.length && 
@@ -50,6 +52,9 @@ class LocalMessageService {
         lastMessageSenderId: '',
         unreadCount: {userId1: 0, userId2: 0},
         projectId: projectId,
+        participantNames: {}, // Adicionar mapa vazio para nomes dos participantes
+        participantPhotos: {}, // Adicionar mapa vazio para fotos dos participantes
+        notified: false, // Adicionar flag de notificação
       );
       
       await chatsBox.put(chatId, chat.toJson());
@@ -63,8 +68,8 @@ class LocalMessageService {
   // Enviar mensagem
   Future<String> sendMessage(MessageModel message) async {
     try {
-      final messagesBox = _storageService.getBox(LocalStorageService.messagesBoxName);
-      final chatsBox = _storageService.getBox(LocalStorageService.chatsBoxName);
+      final messagesBox = await _storageService.openBox(LocalStorageService.messagesBoxName);
+      final chatsBox = await _storageService.openBox(LocalStorageService.chatsBoxName);
       
       // Criar a mensagem
       final messageId = _uuid.v4();
@@ -76,7 +81,7 @@ class LocalMessageService {
       final chat = chatsBox.get(message.chatId);
       if (chat != null) {
         final Map<String, dynamic> chatData = Map<String, dynamic>.from(chat);
-        final Map<String, dynamic> unreadCount = Map<String, dynamic>.from(chatData['unreadCount']);
+        final Map<String, dynamic> unreadCount = Map<String, dynamic>.from(chatData['unreadCount'] ?? {});
         
         // Incrementar contador de mensagens não lidas
         unreadCount[message.receiverId] = (unreadCount[message.receiverId] ?? 0) + 1;
@@ -85,6 +90,7 @@ class LocalMessageService {
         chatData['lastMessageText'] = message.text;
         chatData['lastMessageSenderId'] = message.senderId;
         chatData['unreadCount'] = unreadCount;
+        chatData['notified'] = false; // Resetar flag de notificação
         
         await chatsBox.put(message.chatId, chatData);
       }
@@ -99,14 +105,14 @@ class LocalMessageService {
   // Marcar mensagens como lidas
   Future<void> markMessagesAsRead(String chatId, String userId) async {
     try {
-      final messagesBox = _storageService.getBox(LocalStorageService.messagesBoxName);
-      final chatsBox = _storageService.getBox(LocalStorageService.chatsBoxName);
+      final messagesBox = await _storageService.openBox(LocalStorageService.messagesBoxName);
+      final chatsBox = await _storageService.openBox(LocalStorageService.chatsBoxName);
       
       // Atualizar o contador de mensagens não lidas
       final chat = chatsBox.get(chatId);
       if (chat != null) {
         final Map<String, dynamic> chatData = Map<String, dynamic>.from(chat);
-        final Map<String, dynamic> unreadCount = Map<String, dynamic>.from(chatData['unreadCount']);
+        final Map<String, dynamic> unreadCount = Map<String, dynamic>.from(chatData['unreadCount'] ?? {});
         
         unreadCount[userId] = 0;
         chatData['unreadCount'] = unreadCount;
@@ -118,7 +124,8 @@ class LocalMessageService {
       for (var key in messagesBox.keys) {
         final message = messagesBox.get(key);
         
-        if (message['chatId'] == chatId && 
+        if (message != null && 
+            message['chatId'] == chatId && 
             message['receiverId'] == userId && 
             message['read'] == false) {
           message['read'] = true;
@@ -132,15 +139,15 @@ class LocalMessageService {
   }
   
   // Obter mensagens de um chat
-  List<MessageModel> getMessages(String chatId) {
+  Future<List<MessageModel>> getMessages(String chatId) async {
     try {
-      final messagesBox = _storageService.getBox(LocalStorageService.messagesBoxName);
+      final messagesBox = await _storageService.openBox(LocalStorageService.messagesBoxName);
       final List<MessageModel> messages = [];
       
       for (var key in messagesBox.keys) {
         final message = messagesBox.get(key);
         
-        if (message['chatId'] == chatId) {
+        if (message != null && message['chatId'] == chatId) {
           messages.add(MessageModel.fromJson(Map<String, dynamic>.from(message)));
         }
       }
@@ -156,13 +163,15 @@ class LocalMessageService {
   }
   
   // Obter chats de um usuário
-  List<ChatModel> getUserChats(String userId) {
+  Future<List<ChatModel>> getUserChats(String userId) async {
     try {
-      final chatsBox = _storageService.getBox(LocalStorageService.chatsBoxName);
+      final chatsBox = await _storageService.openBox(LocalStorageService.chatsBoxName);
       final List<ChatModel> chats = [];
       
       for (var key in chatsBox.keys) {
         final chat = chatsBox.get(key);
+        if (chat == null) continue;
+        
         final List<String> participants = List<String>.from(chat['participants']);
         
         if (participants.contains(userId)) {
@@ -183,7 +192,7 @@ class LocalMessageService {
   // Excluir mensagem
   Future<void> deleteMessage(String messageId) async {
     try {
-      final messagesBox = _storageService.getBox(LocalStorageService.messagesBoxName);
+      final messagesBox = await _storageService.openBox(LocalStorageService.messagesBoxName);
       await messagesBox.delete(messageId);
     } catch (e) {
       debugPrint('Erro ao excluir mensagem: $e');
@@ -194,8 +203,8 @@ class LocalMessageService {
   // Excluir chat
   Future<void> deleteChat(String chatId) async {
     try {
-      final chatsBox = _storageService.getBox(LocalStorageService.chatsBoxName);
-      final messagesBox = _storageService.getBox(LocalStorageService.messagesBoxName);
+      final chatsBox = await _storageService.openBox(LocalStorageService.chatsBoxName);
+      final messagesBox = await _storageService.openBox(LocalStorageService.messagesBoxName);
       
       // Excluir chat
       await chatsBox.delete(chatId);
@@ -204,13 +213,70 @@ class LocalMessageService {
       for (var key in messagesBox.keys) {
         final message = messagesBox.get(key);
         
-        if (message['chatId'] == chatId) {
+        if (message != null && message['chatId'] == chatId) {
           await messagesBox.delete(key);
         }
       }
     } catch (e) {
       debugPrint('Erro ao excluir chat: $e');
       rethrow;
+    }
+  }
+  
+  // Adicionar método para obter mensagens como stream
+  Stream<List<MessageModel>> getMessagesStream(String chatId) {
+    try {
+      final messagesBox = _storageService.getBox(LocalStorageService.messagesBoxName);
+      
+      return messagesBox.watch().map((_) {
+        final List<MessageModel> messages = [];
+        
+        for (var key in messagesBox.keys) {
+          final message = messagesBox.get(key);
+          
+          if (message != null && message['chatId'] == chatId) {
+            messages.add(MessageModel.fromJson(Map<String, dynamic>.from(message)));
+          }
+        }
+        
+        // Ordenar mensagens por timestamp (mais recentes por último)
+        messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+        
+        return messages;
+      });
+    } catch (e) {
+      debugPrint('Erro ao obter stream de mensagens: $e');
+      return Stream.value([]);
+    }
+  }
+  
+  // Adicionar método para obter chats como stream
+  Stream<List<ChatModel>> getUserChatsStream(String userId) {
+    try {
+      final chatsBox = _storageService.getBox(LocalStorageService.chatsBoxName);
+      
+      return chatsBox.watch().map((_) {
+        final List<ChatModel> chats = [];
+        
+        for (var key in chatsBox.keys) {
+          final chat = chatsBox.get(key);
+          if (chat == null) continue;
+          
+          final List<String> participants = List<String>.from(chat['participants']);
+          
+          if (participants.contains(userId)) {
+            chats.add(ChatModel.fromJson(Map<String, dynamic>.from(chat)));
+          }
+        }
+        
+        // Ordenar chats por hora da última mensagem (mais recentes primeiro)
+        chats.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+        
+        return chats;
+      });
+    } catch (e) {
+      debugPrint('Erro ao obter stream de chats do usuário: $e');
+      return Stream.value([]);
     }
   }
 }

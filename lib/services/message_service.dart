@@ -99,6 +99,7 @@ class MessageService {
         chatData['lastMessageText'] = message.text;
         chatData['lastMessageSenderId'] = message.senderId;
         chatData['unreadCount'] = unreadCount;
+        chatData['notified'] = false; // Resetar flag de notificação para garantir que o destinatário seja notificado
         
         await chatsBox.put(message.chatId, chatData);
         
@@ -124,6 +125,7 @@ class MessageService {
 
       return messageId;
     } catch (e) {
+      debugPrint('Erro ao enviar mensagem: $e');
       rethrow;
     }
   }
@@ -238,6 +240,53 @@ class MessageService {
     } catch (e) {
       debugPrint('Erro ao obter chats do usuário: $e');
       return Stream.value([]);
+    }
+  }
+
+  // Marcar chat como notificado
+  Future<void> markChatAsNotified(String chatId) async {
+    try {
+      final chatsBox = _storage.getBox(LocalStorageService.chatsBoxName);
+      final chat = chatsBox.get(chatId);
+      
+      if (chat != null) {
+        final Map<String, dynamic> chatData = Map<String, dynamic>.from(chat);
+        chatData['notified'] = true;
+        await chatsBox.put(chatId, chatData);
+      }
+    } catch (e) {
+      debugPrint('Erro ao marcar chat como notificado: $e');
+    }
+  }
+
+  // Verificar e processar novas mensagens para um usuário
+  Future<List<ChatModel>> checkNewMessages(String userId) async {
+    try {
+      final chatsBox = _storage.getBox(LocalStorageService.chatsBoxName);
+      final List<ChatModel> chatsWithNewMessages = [];
+      
+      for (var key in chatsBox.keys) {
+        final chat = chatsBox.get(key);
+        if (chat == null) continue;
+        
+        final participants = List<String>.from(chat['participants']);
+        
+        if (participants.contains(userId)) {
+          final unreadCount = Map<String, dynamic>.from(chat['unreadCount'] ?? {});
+          final int unreadValue = (unreadCount[userId] as int?) ?? 0;
+          final bool hasUnread = unreadValue > 0;
+          final bool notified = chat['notified'] == true;
+          
+          if (hasUnread && !notified) {
+            chatsWithNewMessages.add(ChatModel.fromJson(Map<String, dynamic>.from(chat)));
+          }
+        }
+      }
+      
+      return chatsWithNewMessages;
+    } catch (e) {
+      debugPrint('Erro ao verificar novas mensagens: $e');
+      return [];
     }
   }
 
