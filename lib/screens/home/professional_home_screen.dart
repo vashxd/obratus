@@ -20,6 +20,26 @@ class ProfessionalHomeScreen extends StatefulWidget {
 }
 
 class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
+  // Variável para controlar o tempo do duplo clique para sair
+  DateTime? _lastBackPressTime;
+
+  // Função para lidar com o botão voltar
+  Future<bool> _onWillPop() async {
+    // Se estamos na tela inicial, exigimos duplo clique para sair
+    final now = DateTime.now();
+    if (_lastBackPressTime == null || 
+        now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+      _lastBackPressTime = now;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pressione novamente para sair'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return false;
+    }
+    return true;
+  }
   int _selectedIndex = 0;
   List<String> _selectedSpecialties = [];
   bool _isLoading = false;
@@ -273,7 +293,9 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
     final UserModel? user = authProvider.userModel;
 
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.background,
@@ -471,6 +493,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
               ),
             ),
       bottomNavigationBar: _buildBottomNavigationBar(),
+      ),
     );
   }
   

@@ -15,21 +15,38 @@ class UserTypeScreen extends StatefulWidget {
 }
 
 class _UserTypeScreenState extends State<UserTypeScreen> {
+  // Variável para controlar o tempo do duplo clique para sair
+  DateTime? _lastBackPressTime;
+
+  // Função para lidar com o botão voltar
+  Future<bool> _onWillPop() async {
+    // Se estamos na tela inicial, exigimos duplo clique para sair
+    final now = DateTime.now();
+    if (_lastBackPressTime == null || 
+        now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+      _lastBackPressTime = now;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pressione novamente para sair'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return false;
+    }
+    return true;
+  }
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
+        automaticallyImplyLeading: false,
       ),
       body: SafeArea(
         child: Padding(
@@ -142,7 +159,7 @@ class _UserTypeScreenState extends State<UserTypeScreen> {
           ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildOptionCard(BuildContext context,
