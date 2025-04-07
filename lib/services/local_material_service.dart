@@ -85,44 +85,8 @@ class LocalMaterialService {
   // Obter orçamentos pendentes para um profissional específico
   // Filtra orçamentos de projetos aos quais o profissional está vinculado
   Future<List<MaterialQuote>> getPendingQuotesByProfessional(String professionalId) async {
-    final materialsBox = _getMaterialsBox();
-    final projectsBox = _storageService.getBox(LocalStorageService.projectsBoxName);
-    
-    // Lista para armazenar os IDs dos projetos vinculados ao profissional
-    final List<String> linkedProjectIds = [];
-    
-    // Buscar todos os projetos vinculados ao profissional
-    for (var key in projectsBox.keys) {
-      final projectData = projectsBox.get(key);
-      if (projectData != null) {
-        final Map<String, dynamic> projectMap = Map<String, dynamic>.from(projectData);
-        final List<dynamic> professionalIds = projectMap['professionalIds'] ?? [];
-        
-        // Verificar se o profissional está vinculado a este projeto
-        if (professionalIds.contains(professionalId)) {
-          linkedProjectIds.add(key.toString());
-        }
-      }
-    }
-    
-    // Filtrar orçamentos pendentes dos projetos vinculados ao profissional
-    final List<MaterialQuote> quotes = [];
-    
-    for (var key in materialsBox.keys) {
-      final data = materialsBox.get(key);
-      if (data != null) {
-        final quote = MaterialQuote.fromJson(Map<String, dynamic>.from(data));
-        // Verificar se o orçamento está pendente e pertence a um projeto vinculado ao profissional
-        if (quote.status == 'pending' && quote.projectId != null && linkedProjectIds.contains(quote.projectId)) {
-          quotes.add(quote);
-        }
-      }
-    }
-    
-    // Ordenar por data de criação (mais antigo primeiro)
-    quotes.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    
-    return quotes;
+    // Reutilizar o método getQuotesByStatusAndProfessional com status 'pending'
+    return getQuotesByStatusAndProfessional(professionalId, 'pending');
   }
   
   // Obter orçamentos por status para um profissional específico
@@ -139,9 +103,10 @@ class LocalMaterialService {
       if (projectData != null) {
         final Map<String, dynamic> projectMap = Map<String, dynamic>.from(projectData);
         final List<dynamic> professionalIds = projectMap['professionalIds'] ?? [];
+        final String? mainProfessionalId = projectMap['professionalId'] as String?;
         
-        // Verificar se o profissional está vinculado a este projeto
-        if (professionalIds.contains(professionalId)) {
+        // Verificar se o profissional está vinculado a este projeto (como principal ou na lista)
+        if (professionalIds.contains(professionalId) || mainProfessionalId == professionalId) {
           linkedProjectIds.add(key.toString());
         }
       }
@@ -154,9 +119,21 @@ class LocalMaterialService {
       final data = materialsBox.get(key);
       if (data != null) {
         final quote = MaterialQuote.fromJson(Map<String, dynamic>.from(data));
-        // Verificar se o orçamento tem o status solicitado e pertence a um projeto vinculado ao profissional
-        if (quote.status == status && quote.projectId != null && linkedProjectIds.contains(quote.projectId)) {
-          quotes.add(quote);
+        
+        // Verificar se o orçamento tem o status solicitado
+        if (quote.status == status) {
+          // Verificar se o orçamento pertence a um projeto vinculado ao profissional
+          if (quote.projectId != null && linkedProjectIds.contains(quote.projectId)) {
+            quotes.add(quote);
+          }
+          // Verificar se o profissional é o designado diretamente no orçamento
+          else if (quote.professionalId == professionalId) {
+            quotes.add(quote);
+          }
+          // Incluir todos os orçamentos pendentes que não têm profissional atribuído
+          else if (status == 'pending' && quote.professionalId == null) {
+            quotes.add(quote);
+          }
         }
       }
     }
