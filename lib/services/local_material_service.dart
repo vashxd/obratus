@@ -130,6 +130,10 @@ class LocalMaterialService {
           else if (quote.professionalId == professionalId) {
             quotes.add(quote);
           }
+          // Incluir todos os orçamentos pendentes que não têm profissional atribuído
+          else if (status == 'pending' && quote.professionalId == null) {
+            quotes.add(quote);
+          }
         }
       }
     }
