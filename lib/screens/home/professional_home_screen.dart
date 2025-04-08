@@ -97,7 +97,10 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
           // Show notification if there are unread messages
           if ((chat.unreadCount[userId] ?? 0) > 0 && mounted) {
             // Get the other participant's name
-            final otherParticipantId = chat.participants.firstWhere((id) => id != userId);
+            final otherParticipantId = chat.participants.firstWhere(
+              (id) => id != userId,
+              orElse: () => userId, // Usar o próprio ID como fallback se não encontrar outro participante
+            );
             final otherParticipantName = chat.participantNames[otherParticipantId] ?? 'Usuário';
             
             ScaffoldMessenger.of(context).showSnackBar(

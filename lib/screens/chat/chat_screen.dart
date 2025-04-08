@@ -8,6 +8,7 @@ import '../../models/message_model.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/message_service.dart';
+import 'chat_list_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String receiverId;
@@ -145,8 +146,42 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Future<String?> _getProjectName(String projectId) async {
+    // Implementation to fetch project name
+    // This would typically call a service to get the project details
+    return 'Project Name'; // Placeholder
+  }
+
+  void _showClearChatConfirmation() {
+    // Show confirmation dialog for clearing chat
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        title: const Text('Limpar conversa?', style: TextStyle(color: Colors.white)),
+        content: const Text('Todas as mensagens serão excluídas permanentemente.', style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Implement clear chat functionality
+            },
+            child: const Text('Limpar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final String? userId = authProvider.userId;
+    
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -165,11 +200,37 @@ class _ChatScreenState extends State<ChatScreen> {
               radius: 16,
             ),
             const SizedBox(width: 8),
-            Text(
-              widget.receiverName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.receiverName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (widget.projectId != null)
+                    FutureBuilder<String?>(
+                      future: _getProjectName(widget.projectId!),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData && snapshot.data != null) {
+                          return Text(
+                            'Projeto: ${snapshot.data}',
+                            style: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                ],
               ),
             ),
           ],
@@ -178,6 +239,31 @@ class _ChatScreenState extends State<ChatScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onPressed: () {
+              // Opções adicionais do chat
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: AppColors.cardBackground,
+                builder: (context) => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.delete, color: Colors.red),
+                      title: const Text('Limpar conversa', style: TextStyle(color: Colors.white)),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showClearChatConfirmation();
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
@@ -187,9 +273,26 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: _messages.isEmpty
                       ? Center(
-                          child: Text(
-                            'Nenhuma mensagem ainda. Comece a conversar!',
-                            style: TextStyle(color: Colors.grey.shade400),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.chat_bubble_outline,
+                                size: 64,
+                                color: Colors.grey.shade600,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Nenhuma mensagem ainda',
+                                style: TextStyle(color: Colors.grey.shade400, fontSize: 16),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Envie uma mensagem para iniciar a conversa',
+                                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
                         )
                       : ListView.builder(
@@ -198,62 +301,217 @@ class _ChatScreenState extends State<ChatScreen> {
                           itemCount: _messages.length,
                           itemBuilder: (context, index) {
                             final message = _messages[index];
-                            final isMe = message.senderId == _currentUser?.id;
-
+                            final bool isMe = message.senderId == _currentUser?.id;
+                            
                             return _buildMessageItem(message, isMe);
                           },
                         ),
                 ),
 
                 // Campo de entrada de mensagem
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  color: AppColors.cardBackground,
-                  child: Row(
-                    children: [
-                      // Botão de anexar imagem (funcionalidade futura)
-                      IconButton(
-                        icon: const Icon(Icons.attach_file, color: Colors.white),
-                        onPressed: () {
-                          // Implementação futura
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Funcionalidade em desenvolvimento')),
-                          );
-                        },
-                      ),
-                      // Campo de texto
-                      Expanded(
-                        child: TextField(
-                          controller: _messageController,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            hintText: 'Digite sua mensagem...',
-                            hintStyle: TextStyle(color: Colors.grey.shade600),
-                            filled: true,
-                            fillColor: AppColors.background,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: BorderSide.none,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                          ),
-                          minLines: 1,
-                          maxLines: 4,
-                        ),
-                      ),
-                      // Botão de enviar
-                      IconButton(
-                        icon: const Icon(Icons.send, color: AppColors.primary),
-                        onPressed: _sendMessage,
-                      ),
-                    ],
-                  ),
-                ),
+                _buildMessageInput(),
               ],
             ),
+      bottomNavigationBar: _buildBottomNavigationBar(userId),
+    );
+  }
+  
+  Widget _buildMessageInput() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      color: AppColors.cardBackground,
+      child: Row(
+        children: [
+          // Botão de anexar imagem (funcionalidade futura)
+          IconButton(
+            icon: const Icon(Icons.attach_file, color: Colors.white),
+            onPressed: () {
+              // Implementação futura
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Funcionalidade em desenvolvimento')),
+              );
+            },
+          ),
+          // Campo de texto
+          Expanded(
+            child: TextField(
+              controller: _messageController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Digite sua mensagem...',
+                hintStyle: TextStyle(color: Colors.grey.shade600),
+                filled: true,
+                fillColor: AppColors.background,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+              ),
+              minLines: 1,
+              maxLines: 4,
+            ),
+          ),
+          // Botão de enviar
+          IconButton(
+            icon: const Icon(Icons.send, color: AppColors.primary),
+            onPressed: _sendMessage,
+          ),
+        ],
+      ),
+    );
+  }
+  
+  // Construir a barra de navegação inferior
+  Widget _buildBottomNavigationBar(String? userId) {
+    if (userId == null) {
+      return _buildSimpleBottomNavigationBar();
+    }
+    
+    return StreamBuilder<List<ChatModel>>(
+      stream: _messageService.getUserChats(userId),
+      builder: (context, snapshot) {
+        // Calcular total de mensagens não lidas
+        int unreadCount = 0;
+        if (snapshot.hasData) {
+          for (var chat in snapshot.data!) {
+            unreadCount += chat.unreadCount[userId] ?? 0;
+          }
+        }
+        
+        return BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: AppColors.background,
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: Colors.grey,
+          currentIndex: 1, // Índice 1 corresponde ao chat
+          onTap: (index) {
+            if (index == 0) {
+              // Botão de início - redirecionar para a tela inicial
+              Navigator.pushReplacementNamed(context, '/user_type');
+            } else if (index == 1) {
+              // Navegar para a lista de chats
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ChatListScreen(),
+                ),
+              );
+            } else if (index == 2) {
+              // Navegar para a tela de notificações
+              Navigator.pushNamed(context, '/notifications');
+            } else if (index == 3) {
+              // Fale conosco - implementação futura
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Funcionalidade em desenvolvimento')),
+              );
+            }
+          },
+          items: [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: 'Início',
+            ),
+            BottomNavigationBarItem(
+              icon: _buildBadgeIcon(Icons.chat, unreadCount),
+              label: 'Chat',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.notifications),
+              label: 'Notificações',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.mail),
+              label: 'Fale Conosco',
+            ),
+          ],
+        );
+      },
+    );
+  }
+  
+  // Versão simples da barra de navegação sem indicadores
+  Widget _buildSimpleBottomNavigationBar() {
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      backgroundColor: AppColors.background,
+      selectedItemColor: AppColors.primary,
+      unselectedItemColor: Colors.grey,
+      currentIndex: 1, // Índice 1 corresponde ao chat
+      onTap: (index) {
+        if (index == 0) {
+          Navigator.pushReplacementNamed(context, '/user_type');
+        } else if (index == 1) {
+          // Navegar para a lista de chats
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ChatListScreen(),
+            ),
+          );
+        } else if (index == 2) {
+          Navigator.pushNamed(context, '/notifications');
+        } else if (index == 3) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Funcionalidade em desenvolvimento')),
+          );
+        }
+      },
+      items: [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home),
+          label: 'Início',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.chat),
+          label: 'Chat',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.notifications),
+          label: 'Notificações',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.mail),
+          label: 'Fale Conosco',
+        ),
+      ],
+    );
+  }
+  
+  // Construir ícone com badge de notificação
+  Widget _buildBadgeIcon(IconData icon, int count) {
+    if (count <= 0) {
+      return Icon(icon);
+    }
+    
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(icon),
+        Positioned(
+          top: -5,
+          right: -5,
+          child: Container(
+            padding: EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: Colors.red,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            constraints: BoxConstraints(
+              minWidth: 16,
+              minHeight: 16,
+            ),
+            child: Text(
+              count > 9 ? '9+' : count.toString(),
+              style: TextStyle(color: Colors.white, fontSize: 10),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
