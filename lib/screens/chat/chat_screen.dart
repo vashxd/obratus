@@ -8,6 +8,7 @@ import '../../models/message_model.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/message_service.dart';
+import '../../data/mock_chat_data.dart';
 import 'chat_list_screen.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -69,20 +70,42 @@ class _ChatScreenState extends State<ChatScreen> {
           projectId: widget.projectId,
         );
 
-        // Carregar mensagens
-        await _loadMessages();
+        // Carregar mensagens com timeout para evitar carregamento infinito
+        bool messagesLoaded = false;
+        
+        // Iniciar carregamento de mensagens
+        _loadMessages().then((_) {
+          messagesLoaded = true;
+        });
+        
+        // Definir timeout
+        Future.delayed(const Duration(seconds: 5), () {
+          if (!messagesLoaded && mounted) {
+            setState(() {
+              _isLoading = false;
+              _messages = []; // Definir lista vazia
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Tempo esgotado ao carregar mensagens. Tente novamente.')),
+            );
+          }
+        });
 
         // Marcar mensagens como lidas
         await _messageService.markMessagesAsRead(_chatId!, _currentUser!.id);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao inicializar chat: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao inicializar chat: $e')),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -91,19 +114,22 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _loadMessages() async {
     try {
-      if (_chatId != null) {
-        // Cancelar inscrição anterior se existir
-        _messagesSubscription?.cancel();
+      if (_chatId != null && _currentUser != null) {
+        // Usar dados mockados em vez de carregar do serviço real
+        await Future.delayed(const Duration(milliseconds: 800)); // Simular carregamento
         
-        // Inscrever-se no stream de mensagens
-        _messagesSubscription = _messageService.getMessages(_chatId!).listen((messages) {
+        // Obter mensagens mockadas para este chat
+        final messages = MockChatData.getMockMessages(_chatId!, _currentUser!.id);
+        
+        if (mounted) {
           setState(() {
             _messages = messages;
+            _isLoading = false;
           });
-
-          // Rolar para a última mensagem
+          
+          // Rolar para a última mensagem após carregar
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_scrollController.hasClients && _messages.isNotEmpty) {
+            if (_messages.isNotEmpty && _scrollController.hasClients) {
               _scrollController.animateTo(
                 _scrollController.position.maxScrollExtent,
                 duration: const Duration(milliseconds: 300),
@@ -111,12 +137,23 @@ class _ChatScreenState extends State<ChatScreen> {
               );
             }
           });
-        });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar mensagens: $e')),
-      );
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao carregar mensagens: $e')),
+        );
+      }
     }
   }
 

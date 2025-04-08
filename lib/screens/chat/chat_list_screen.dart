@@ -5,6 +5,7 @@ import '../../constants/app_colors.dart';
 import '../../models/message_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/message_service.dart';
+import '../../data/mock_chat_data.dart';
 import 'chat_screen.dart';
 import '../home/client_home_screen.dart';
 import '../home/professional_home_screen.dart';
@@ -45,42 +46,19 @@ class _ChatListScreenState extends State<ChatListScreen> {
       _userId = authProvider.userId;
 
       if (_userId != null) {
-        // Adicionar um timeout para evitar carregamento infinito
-        bool dataReceived = false;
+        // Cancelar assinatura anterior se existir (não necessário para dados mockados)
+        _messagesSubscription?.cancel();
         
-        // Criar uma assinatura para o stream que podemos cancelar
-        var subscription = _messageService.getUserChats(_userId!).listen((chats) {
-          dataReceived = true;
-          if (mounted) {
-            setState(() {
-              _chats = chats;
-              _isLoading = false;
-            });
-          }
-        }, onError: (error) {
-          if (mounted) {
-            setState(() {
-              _isLoading = false;
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Erro ao carregar conversas: $error')),
-            );
-          }
-        });
+        // Simular um pequeno atraso para mostrar o carregamento
+        await Future.delayed(const Duration(milliseconds: 800));
         
-        // Definir um timeout para evitar carregamento infinito
-        Future.delayed(const Duration(seconds: 5), () {
-          if (!dataReceived && mounted) {
-            subscription.cancel();
-            setState(() {
-              _isLoading = false;
-              _chats = []; // Definir lista vazia para mostrar a mensagem de nenhuma conversa
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Tempo esgotado ao carregar conversas. Tente novamente.')),
-            );
-          }
-        });
+        if (mounted) {
+          setState(() {
+            // Carregar chats mockados
+            _chats = MockChatData.getMockChats(_userId!);
+            _isLoading = false;
+          });
+        }
       } else {
         setState(() {
           _isLoading = false;
@@ -256,6 +234,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
               Navigator.pushReplacementNamed(context, '/user_type');
             } else if (index == 1) {
               // Já estamos na tela de chat, não fazer nada
+              // Recarregar a lista de chats para garantir que as mensagens sejam exibidas
+              _loadChats();
             } else if (index == 2) {
               // Navegar para a tela de notificações
               Navigator.pushNamed(context, '/notifications');
